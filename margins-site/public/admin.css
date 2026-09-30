@@ -26,6 +26,7 @@
 .rich-canvas table { width: 100%; border-collapse: collapse; }
 .rich-canvas th, .rich-canvas td { padding: 7px; border: 1px solid var(--rule); text-align: left; }
 .rich-canvas img { max-width: 100%; height: auto; }
+.essay-form > label small { display: block; font-size: 12px; line-height: 1.5; }
 .rich-source { resize: vertical; font: 13px/1.55 ui-monospace, Consolas, monospace; }
 .import-row { display: grid; grid-template-columns: minmax(220px, 1fr) auto; align-items: end; gap: 12px; margin-top: 13px; }
 .site-content-panel { margin-top: 20px; }

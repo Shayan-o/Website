@@ -6,9 +6,9 @@
     <meta name="robots" content="noindex, nofollow" />
     <meta name="theme-color" content="#f8f7f3" />
     <title>Editorial — Margins</title>
-    <link rel="stylesheet" href="/styles.css?v=rich-editor-1" />
-    <link rel="stylesheet" href="/admin.css?v=rich-editor-1" />
-    <script src="/admin.js?v=rich-editor-1" defer></script>
+    <link rel="stylesheet" href="/styles.css?v=endnotes-1" />
+    <link rel="stylesheet" href="/admin.css?v=endnotes-1" />
+    <script src="/admin.js?v=endnotes-1" defer></script>
   </head>
   <body>
     <main class="admin-shell">
@@ -39,6 +39,22 @@
                 </div>
                 <div id="essay-editor" class="rich-canvas" contenteditable="true" role="textbox" aria-label="Essay text" aria-multiline="true"></div>
                 <textarea id="essay-source" class="rich-source" rows="14" aria-label="Essay HTML source" hidden></textarea>
+              </div>
+              <label>Endnotes <small>Keep note text here. Use the link button to link a note number in the essay to its note, and add a return link in the note.</small></label>
+              <div class="rich-editor">
+                <div class="rich-toolbar" data-editor="endnotes-editor" aria-label="Endnotes formatting">
+                  <button type="button" data-command="bold"><strong>B</strong></button><button type="button" data-command="italic"><em>I</em></button><button type="button" data-command="insertUnorderedList">Bullets</button><button type="button" data-command="insertOrderedList">Numbered list</button><button type="button" data-command="createLink">Link</button><button type="button" data-mode-toggle="endnotes">Source</button>
+                </div>
+                <div id="endnotes-editor" class="rich-canvas" contenteditable="true" role="textbox" aria-label="Endnotes" aria-multiline="true"></div>
+                <textarea id="endnotes-source" class="rich-source" rows="8" aria-label="Endnotes HTML source" hidden></textarea>
+              </div>
+              <label>Sources <small>List sources separately. Imported web links are preserved as clickable links.</small></label>
+              <div class="rich-editor">
+                <div class="rich-toolbar" data-editor="sources-editor" aria-label="Sources formatting">
+                  <button type="button" data-command="bold"><strong>B</strong></button><button type="button" data-command="italic"><em>I</em></button><button type="button" data-command="insertUnorderedList">Bullets</button><button type="button" data-command="insertOrderedList">Numbered list</button><button type="button" data-command="createLink">Link</button><button type="button" data-mode-toggle="sources">Source</button>
+                </div>
+                <div id="sources-editor" class="rich-canvas" contenteditable="true" role="textbox" aria-label="Sources" aria-multiline="true"></div>
+                <textarea id="sources-source" class="rich-source" rows="8" aria-label="Sources HTML source" hidden></textarea>
               </div>
               <div class="import-row"><label for="essay-doc-url">Google Docs share link<input id="essay-doc-url" type="url" placeholder="https://docs.google.com/document/d/…" /></label><button id="import-essay-doc" class="button-quiet" type="button">Import document</button></div>
               <div class="field-row"><label>Status<select name="status"><option value="draft">Draft</option><option value="published">Published</option></select></label><button type="submit">Save essay</button></div>

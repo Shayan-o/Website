@@ -73,6 +73,8 @@
       <article><header class="essay-header"><h1>${escapeHtml(essay.title)}</h1>
         <p class="meta">${escapeHtml(essay.date)} · ${essay.minutes} min</p></header>
         <div class="essay-body">${essay.contentHtml || essay.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("")}</div>
+        ${essay.endnotesHtml ? `<section class="essay-notes" aria-labelledby="endnotes-heading"><h2 id="endnotes-heading">Endnotes</h2><div>${essay.endnotesHtml}</div></section>` : ""}
+        ${essay.sourcesHtml ? `<section class="essay-sources" aria-labelledby="sources-heading"><h2 id="sources-heading">Sources</h2><div>${essay.sourcesHtml}</div></section>` : ""}
         <div class="article-tags">${essay.tags.map((tag) => `<a href="${tagUrl(tag)}" data-nav>${escapeHtml(tag)}</a>`).join("")}</div>
       </article><a class="more-link" href="/" data-nav>More essays</a>${footer()}</main>`;
   }

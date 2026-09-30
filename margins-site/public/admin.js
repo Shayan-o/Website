@@ -6,7 +6,7 @@
   let essays = [];
   let currentSlug = null;
   let siteContent = {};
-  const sourceMode = { essay: false, site: false };
+  const sourceMode = { essay: false, endnotes: false, sources: false, site: false };
   const richTags = new Set(["P", "H1", "H2", "H3", "H4", "H5", "H6", "UL", "OL", "LI", "BLOCKQUOTE", "PRE", "CODE", "STRONG", "B", "EM", "I", "U", "S", "DEL", "BR", "HR", "A", "SUP", "SUB", "TABLE", "THEAD", "TBODY", "TR", "TH", "TD", "DIV", "SPAN", "IMG"]);
 
   const request = async (url, options = {}) => {
@@ -42,14 +42,15 @@
       for (const attr of [...element.attributes]) {
         const name = attr.name.toLowerCase();
         if (name === "href" && element.tagName === "A") {
-          if (!/^(https?:\/\/|mailto:|tel:|#(?:fn|note|ftnt|footnote|footnoteref|endnote|endnoteref)[a-z0-9_.:-]*$)/i.test(attr.value)) element.removeAttribute(attr.name);
+          if (!/^(https?:\/\/|mailto:|tel:|#[a-z0-9_.:-]{1,120})$/i.test(attr.value)) element.removeAttribute(attr.name);
         } else if (name === "src" && element.tagName === "IMG") {
           let url; try { url = new URL(attr.value); } catch {}
           if (!url || url.protocol !== "https:" || !/(?:^|\.)googleusercontent\.com$/.test(url.hostname)) element.removeAttribute(attr.name);
         } else if ((name === "alt" || name === "title") && element.tagName === "IMG") {
         } else if (name === "style") {
           const style = safeStyle(attr.value); if (style) element.setAttribute("style", style); else element.removeAttribute(attr.name);
-        } else if (name === "id" && element.tagName === "A" && /^(fn|note|ftnt|footnote|footnoteref|endnote|endnoteref)[a-z0-9_.:-]{1,80}$/i.test(attr.value)) {
+        } else if (name === "id" && /^[a-z0-9_.:-]{1,120}$/i.test(attr.value)) {
+        } else if (name === "name" && element.tagName === "A" && /^[a-z0-9_.:-]{1,120}$/i.test(attr.value)) {
         } else if ((name === "colspan" || name === "rowspan") && ["TD", "TH"].includes(element.tagName) && /^[1-9]\d?$/.test(attr.value)) {
         } else if (name === "start" && element.tagName === "OL" && /^\d{1,4}$/.test(attr.value)) {
         } else element.removeAttribute(attr.name);
@@ -81,10 +82,24 @@
     return sanitizeForEditor(doc.body.innerHTML);
   }
 
+  function splitImportedSections(html) {
+    const doc = new DOMParser().parseFromString("<body>" + html + "</body>", "text/html");
+    const sections = { essay: [], endnotes: [], sources: [] };
+    let current = "essay";
+    for (const node of [...doc.body.childNodes]) {
+      const label = (node.textContent || "").trim().replace(/[:.]$/, "").toLowerCase();
+      const isHeading = node.nodeType === Node.ELEMENT_NODE && (/^H[1-6]$/.test(node.tagName) || (node.tagName === "P" && node.children.length <= 1 && /^(?:endnotes?|notes?|sources?|references|bibliography|works cited)$/.test(label)));
+      if (isHeading && /^(?:endnotes?|notes?)$/.test(label)) { current = "endnotes"; continue; }
+      if (isHeading && /^(?:sources?|references|bibliography|works cited)$/.test(label)) { current = "sources"; continue; }
+      const wrapper = doc.createElement("div");
+      wrapper.append(node.cloneNode(true));
+      sections[current].push(wrapper.innerHTML);
+    }
+    return Object.fromEntries(Object.entries(sections).map(([key, value]) => [key, sanitizeForEditor(value.join("")).trim()]));
+  }
+
   function editorParts(kind) {
-    return kind === "essay"
-      ? { visual: document.getElementById("essay-editor"), source: document.getElementById("essay-source") }
-      : { visual: document.getElementById("site-editor"), source: document.getElementById("site-source") };
+    return { visual: document.getElementById(kind + "-editor"), source: document.getElementById(kind + "-source") };
   }
 
   function setEditorHtml(kind, html) {
@@ -137,8 +152,14 @@
     formMessage(statusId, "Importing document…");
     try {
       const result = await request("/api/admin/import-google-doc", { method: "POST", body: JSON.stringify({ url }) });
-      setEditorHtml(kind, importGoogleHtml(result.sourceHtml));
-      formMessage(statusId, "Imported. Review the formatting and notes, then save.");
+      const importedHtml = importGoogleHtml(result.sourceHtml);
+      if (kind === "essay") {
+        const sections = splitImportedSections(importedHtml);
+        setEditorHtml("essay", sections.essay);
+        setEditorHtml("endnotes", sections.endnotes || "<p></p>");
+        setEditorHtml("sources", sections.sources || "<p></p>");
+      } else setEditorHtml(kind, importedHtml);
+      formMessage(statusId, kind === "essay" ? "Imported. Review the essay, Endnotes, Sources, and links, then save." : "Imported. Review the formatting and links, then save.");
     } catch (error) { formMessage(statusId, error.message); }
     finally { button.disabled = false; }
   }
@@ -147,7 +168,7 @@
     toolbar.addEventListener("click", (event) => {
       const button = event.target.closest("button");
       if (!button) return;
-      const kind = toolbar.dataset.editor === "essay-editor" ? "essay" : "site";
+      const kind = toolbar.dataset.editor.replace(/-editor$/, "");
       if (button.dataset.modeToggle) {
         const parts = editorParts(kind);
         if (!sourceMode[kind]) {
@@ -244,6 +265,8 @@
     essayForm.elements.tags.value = essay.tags.join(", ");
     const fallbackHtml = essay.paragraphs.map((paragraph) => "<p>" + paragraph.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]) + "</p>").join("");
     setEditorHtml("essay", essay.contentHtml || fallbackHtml);
+    setEditorHtml("endnotes", essay.endnotesHtml || "<p></p>");
+    setEditorHtml("sources", essay.sourcesHtml || "<p></p>");
     essayForm.elements.status.value = essay.status;
     document.getElementById("form-heading").textContent = "Edit: " + essay.title;
     document.getElementById("send-essay").hidden = essay.status !== "published";
@@ -257,6 +280,8 @@
     essayForm.elements.minutes.value = 5;
     essayForm.elements.status.value = "draft";
     setEditorHtml("essay", "<p></p>");
+    setEditorHtml("endnotes", "<p></p>");
+    setEditorHtml("sources", "<p></p>");
     document.getElementById("form-heading").textContent = "New essay";
     document.getElementById("send-essay").hidden = true;
     document.getElementById("delete-essay").hidden = true;
@@ -281,6 +306,8 @@
       minutes: Number(data.get("minutes")), tags: data.get("tags").split(",").map((tag) => tag.trim()).filter(Boolean),
       paragraphs: plainText(contentHtml), contentHtml, status: data.get("status")
     };
+    essay.endnotesHtml = editorHtml("endnotes");
+    essay.sourcesHtml = editorHtml("sources");
     if (!essay.paragraphs.length) { formMessage("essay-status", "Add essay text before saving."); return; }
     formMessage("essay-status", "Saving…");
     try {
@@ -315,6 +342,8 @@
       essayForm.elements.minutes.value = 5;
       essayForm.elements.status.value = "draft";
       setEditorHtml("essay", "<p></p>");
+      setEditorHtml("endnotes", "<p></p>");
+      setEditorHtml("sources", "<p></p>");
       document.getElementById("form-heading").textContent = "New essay";
       document.getElementById("send-essay").hidden = true;
       document.getElementById("delete-essay").hidden = true;

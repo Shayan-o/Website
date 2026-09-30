@@ -81,6 +81,10 @@ a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid 
 .essay-header .meta { margin: 0; }
 .essay-body { font: 19px/1.85 var(--serif); }
 .essay-body p { margin: 0 0 1.45em; }
+.essay-notes, .essay-sources { margin: 42px 0 0; padding-top: 24px; border-top: 1px solid var(--rule); font: 15px/1.7 var(--serif); }
+.essay-notes h2, .essay-sources h2 { margin: 0 0 16px; font: 12px var(--sans); letter-spacing: .14em; text-transform: uppercase; }
+.essay-notes li, .essay-sources li { margin: 0 0 10px; }
+.essay-notes a, .essay-sources a { overflow-wrap: anywhere; }
 .article-tags { margin: 40px 0 42px; }
 .article-tags a { color: var(--muted); font-size: 13px; }
 .more-link { margin-bottom: 30px; }
