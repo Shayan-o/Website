@@ -5,7 +5,7 @@ compatibility_date = "2026-09-30"
 [[d1_databases]]
 binding = "DB"
 database_name = "margins-content"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "f4e3d32c-4daa-468f-aebb-c579bd0fbc4c"
 migrations_dir = "migrations"
 
 # Set MAIL_FROM in Cloudflare Pages > Settings > Variables and Secrets.
