@@ -13,16 +13,19 @@ export async function onRequestPut({ request, env }) {
   if (!env.DB) return fail("The content database is not configured yet.", 503);
   const input = await readJson(request);
   const contentHtml = await sanitizeRichHtml(input?.contentHtml || "");
+  const endnotesHtml = await sanitizeRichHtml(input?.endnotesHtml || "", 100000);
+  const sourcesHtml = await sanitizeRichHtml(input?.sourcesHtml || "", 100000);
   const richText = contentHtml.replace(/<[^>]*>/g, " ").replace(/&nbsp;/gi, " ").trim();
   const paragraphs = Array.isArray(input?.paragraphs) && input.paragraphs.length ? input.paragraphs : richText ? [richText] : [];
-  const essay = normalizeEssay({ ...input, paragraphs, contentHtml });
+  const essay = normalizeEssay({ ...input, paragraphs, contentHtml, endnotesHtml, sourcesHtml });
   if (!essay) return fail("Check the title, URL slug, date, reading time, tags, and essay paragraphs.");
-  await env.DB.prepare(`INSERT INTO essays (slug, title, excerpt, published_on, minutes, tags_json, paragraphs_json, content_html, status, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+  await env.DB.prepare(`INSERT INTO essays (slug, title, excerpt, published_on, minutes, tags_json, paragraphs_json, content_html, endnotes_html, sources_html, status, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     ON CONFLICT(slug) DO UPDATE SET title = excluded.title, excerpt = excluded.excerpt, published_on = excluded.published_on,
     minutes = excluded.minutes, tags_json = excluded.tags_json, paragraphs_json = excluded.paragraphs_json, content_html = excluded.content_html,
+    endnotes_html = excluded.endnotes_html, sources_html = excluded.sources_html,
     status = excluded.status, updated_at = CURRENT_TIMESTAMP`)
-    .bind(essay.slug, essay.title, essay.excerpt, essay.date, essay.minutes, JSON.stringify(essay.tags), JSON.stringify(essay.paragraphs), essay.contentHtml, essay.status).run();
+    .bind(essay.slug, essay.title, essay.excerpt, essay.date, essay.minutes, JSON.stringify(essay.tags), JSON.stringify(essay.paragraphs), essay.contentHtml, essay.endnotesHtml, essay.sourcesHtml, essay.status).run();
   return json({ saved: true, essay });
 }
 
