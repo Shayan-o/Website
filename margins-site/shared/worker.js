@@ -30,7 +30,9 @@ export function normalizeEssay(input) {
   const status = input.status === "published" ? "published" : "draft";
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || !title || !/^\d{4}-\d{2}-\d{2}$/.test(publishedOn) || !Number.isFinite(minutes) || minutes < 1 || minutes > 240 || paragraphs.length === 0) return null;
   return { slug, title, excerpt, date: publishedOn, minutes, tags, paragraphs, status,
-    contentHtml: typeof input.contentHtml === "string" ? input.contentHtml : "" };
+    contentHtml: typeof input.contentHtml === "string" ? input.contentHtml : "",
+    endnotesHtml: typeof input.endnotesHtml === "string" ? input.endnotesHtml : "",
+    sourcesHtml: typeof input.sourcesHtml === "string" ? input.sourcesHtml : "" };
 }
 
 const richTags = new Set(["p", "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "li", "blockquote", "pre", "code", "strong", "b", "em", "i", "u", "s", "del", "br", "hr", "a", "sup", "sub", "table", "thead", "tbody", "tr", "th", "td", "div", "span", "img"]);
@@ -77,7 +79,7 @@ export async function sanitizeRichHtml(input, maxLength = 300000) {
       for (const [name, value] of [...element.attributes]) {
         const attr = name.toLowerCase();
         if (attr === "href" && tag === "a") {
-          if (!/^(?:https?:\/\/|mailto:|tel:|#(?:fn|note|ftnt|footnote|footnoteref|endnote|endnoteref)[a-z0-9_.:-]*$)/i.test(value)) element.removeAttribute(name);
+          if (!/^(?:https?:\/\/|mailto:|tel:|#[a-z0-9_.:-]{1,120})$/i.test(value)) element.removeAttribute(name);
           else if (/^https?:\/\//i.test(value)) element.setAttribute("rel", "noopener noreferrer");
           continue;
         }
@@ -88,7 +90,8 @@ export async function sanitizeRichHtml(input, maxLength = 300000) {
           if (style) element.setAttribute("style", style); else element.removeAttribute(name);
           continue;
         }
-        if (attr === "id" && tag === "a" && /^(?:fn|note|ftnt|footnote|footnoteref|endnote|endnoteref)[a-z0-9_.:-]{1,80}$/i.test(value)) continue;
+        if (attr === "id" && /^[a-z0-9_.:-]{1,120}$/i.test(value)) continue;
+        if (attr === "name" && tag === "a" && /^[a-z0-9_.:-]{1,120}$/i.test(value)) continue;
         if ((attr === "colspan" || attr === "rowspan") && (tag === "td" || tag === "th") && /^[1-9]\d?$/.test(value)) continue;
         if (attr === "start" && tag === "ol" && /^\d{1,4}$/.test(value)) continue;
         element.removeAttribute(name);
@@ -110,6 +113,8 @@ export async function toEssay(row) {
     tags: JSON.parse(row.tags_json || "[]"),
     paragraphs: JSON.parse(row.paragraphs_json || "[]"),
     contentHtml: row.content_html || "",
+    endnotesHtml: row.endnotes_html || "",
+    sourcesHtml: row.sources_html || "",
     status: row.status
   };
 }
