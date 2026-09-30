@@ -6,7 +6,7 @@ This folder is a static recreation of the public Margins pages plus a Cloudflare
 
 - Home, three captured essays, tags index, and Design, Tools, and Writing tag pages.
 - Privacy page describing Cloudflare D1 storage and Resend email delivery; replace the contact placeholder before launch.
-- `/admin.html`: password-protected essay editor and confirmed-subscriber list, with CSV export and subscriber removal.
+- `/admin.html`: password-protected visual essay editor with an HTML source view, Google Docs link import, editable homepage/privacy copy, and confirmed-subscriber management.
 - Public essays load from D1 after the database is configured. The captured essays are seeded by the first migration.
 - Newsletter signup stores no address until the confirmation email is accepted for delivery. Confirmation and unsubscribe links are time-limited and single-use.
 - Admins can explicitly email a published essay to confirmed subscribers. Each recipient gets an individual message with an unsubscribe link.
@@ -32,7 +32,7 @@ Resend receives subscriber email addresses to deliver opt-in confirmations, unsu
 
 Sign in at `/admin.html`, select an essay or click **New essay**, then save it as a draft or publish it. Published essays appear on the site from D1. To email one to confirmed subscribers, select the published essay and use **Email this essay to confirmed subscribers**; this is a separate action from publishing. The public API accepts only published essays.
 
-The browser editor treats essay content as plain text. Separate paragraphs with a blank line. Slugs become permanent article URLs, so avoid changing an existing slug unless you also plan redirects.
+To import an essay or site copy, paste a Google Docs link set to **Anyone with the link → Viewer**, then select **Import document**. Review the result in the visual editor before saving. Common formatting, links, tables, and Google Docs footnote references are preserved where supported by the document’s HTML export. Google Docs provides footnotes rather than native endnotes; manually linked endnote-style notes can be imported when their anchors are present in the exported HTML. The editor also offers a source view for precise HTML edits. Slugs become permanent article URLs, so avoid changing an existing slug unless you also plan redirects.
 
 ## Local content snapshot
 
