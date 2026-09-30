@@ -1,0 +1,2 @@
+ALTER TABLE essays ADD COLUMN endnotes_html TEXT NOT NULL DEFAULT '';
+ALTER TABLE essays ADD COLUMN sources_html TEXT NOT NULL DEFAULT '';
