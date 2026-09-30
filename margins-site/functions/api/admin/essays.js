@@ -13,8 +13,11 @@ export async function onRequestPut({ request, env }) {
   if (!env.DB) return fail("The content database is not configured yet.", 503);
   const input = await readJson(request);
   const contentHtml = await sanitizeRichHtml(input?.contentHtml || "");
-  const endnotesHtml = await sanitizeRichHtml(input?.endnotesHtml || "", 100000);
-  const sourcesHtml = await sanitizeRichHtml(input?.sourcesHtml || "", 100000);
+  const emptySection = (html) => !html.replace(/<[^>]*>/g, "").replace(/(?:&nbsp;|&#160;|&#xA0;)/gi, "").trim();
+  const safeEndnotes = await sanitizeRichHtml(input?.endnotesHtml || "", 100000);
+  const safeSources = await sanitizeRichHtml(input?.sourcesHtml || "", 100000);
+  const endnotesHtml = emptySection(safeEndnotes) ? "" : safeEndnotes;
+  const sourcesHtml = emptySection(safeSources) ? "" : safeSources;
   const richText = contentHtml.replace(/<[^>]*>/g, " ").replace(/&nbsp;/gi, " ").trim();
   const paragraphs = Array.isArray(input?.paragraphs) && input.paragraphs.length ? input.paragraphs : richText ? [richText] : [];
   const essay = normalizeEssay({ ...input, paragraphs, contentHtml, endnotesHtml, sourcesHtml });
