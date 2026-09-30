@@ -17,11 +17,18 @@ export async function onRequestPost({ request, env }) {
   if (!response.ok || !response.headers.get("content-type")?.toLowerCase().includes("text/html")) {
     return fail("Google could not export this document. Check that Anyone with the link can view it.", 422);
   }
-  if (!/^(?:docs\.google\.com|drive\.google\.com|[a-z0-9.-]+\.googleusercontent\.com)$/i.test(new URL(response.url).hostname)) {
+  const finalHost = new URL(response.url).hostname;
+  if (/^accounts\.google\.com$/i.test(finalHost)) {
+    return fail("Google sent the import request to a sign-in page. Set General access to Anyone with the link and Viewer, then retry. If this is a work or school account, its administrator may restrict public exports.", 422);
+  }
+  if (!/^(?:docs\.google\.com|drive\.google\.com|[a-z0-9.-]+\.googleusercontent\.com)$/i.test(finalHost)) {
     return fail("Google redirected the export to an unexpected destination.", 422);
   }
   const rawHtml = await response.text();
-  if (rawHtml.length > 500000 || /accounts\.google\.com|Sign in - Google Accounts/i.test(rawHtml.slice(0, 5000))) {
+  if (rawHtml.length > 2000000) {
+    return fail("This Google Docs export is too large to import at once. Remove large images or split the document, then retry.", 413);
+  }
+  if (/<title[^>]*>\s*Sign in\s*[-–—]\s*Google Accounts/i.test(rawHtml.slice(0, 10000))) {
     return fail("This document is private. Change General access to Anyone with the link can view, then retry.", 422);
   }
   if (!rawHtml.replace(/<[^>]*>/g, "").trim()) return fail("Google returned an empty document.", 422);
