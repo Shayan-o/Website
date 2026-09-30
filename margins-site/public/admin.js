@@ -58,9 +58,9 @@
       const action = document.createElement("td");
       const remove = document.createElement("button"); remove.type = "button"; remove.className = "button-quiet"; remove.textContent = "Remove";
       remove.addEventListener("click", async () => {
-        if (!window.confirm(`Remove ${subscriber.email} and its consent record?`)) return;
+        if (!window.confirm("Remove " + subscriber.email + " and its consent record?")) return;
         try {
-          await request(`/api/admin/subscribers?email=${encodeURIComponent(subscriber.email)}`, { method: "DELETE" });
+          await request("/api/admin/subscribers?email=" + encodeURIComponent(subscriber.email), { method: "DELETE" });
           await loadSubscribers();
         } catch (error) { window.alert(error.message); }
       });
@@ -79,8 +79,9 @@
     essayForm.elements.tags.value = essay.tags.join(", ");
     essayForm.elements.paragraphs.value = essay.paragraphs.join("\n\n");
     essayForm.elements.status.value = essay.status;
-    document.getElementById("form-heading").textContent = `Edit: ${essay.title}`;
+    document.getElementById("form-heading").textContent = "Edit: " + essay.title;
     document.getElementById("send-essay").hidden = essay.status !== "published";
+    document.getElementById("delete-essay").hidden = false;
     formMessage("essay-status", "");
   }
 
@@ -91,6 +92,7 @@
     essayForm.elements.status.value = "draft";
     document.getElementById("form-heading").textContent = "New essay";
     document.getElementById("send-essay").hidden = true;
+    document.getElementById("delete-essay").hidden = true;
     formMessage("essay-status", "");
   });
 
@@ -116,8 +118,9 @@
       await request("/api/admin/essays", { method: "PUT", body: JSON.stringify(essay) });
       formMessage("essay-status", essay.status === "published" ? "Published and saved." : "Draft saved.");
       currentSlug = essay.slug;
-      document.getElementById("form-heading").textContent = `Edit: ${essay.title}`;
+      document.getElementById("form-heading").textContent = "Edit: " + essay.title;
       document.getElementById("send-essay").hidden = essay.status !== "published";
+      document.getElementById("delete-essay").hidden = false;
       formMessage("broadcast-status", "");
       await loadEssays();
     } catch (error) { formMessage("essay-status", error.message); }
@@ -130,6 +133,25 @@
       const result = await request("/api/admin/broadcast", { method: "POST", body: JSON.stringify({ slug: currentSlug }) });
       formMessage("broadcast-status", result.message);
     } catch (error) { formMessage("broadcast-status", error.message); }
+  });
+
+  document.getElementById("delete-essay").addEventListener("click", async () => {
+    const essay = essays.find((item) => item.slug === currentSlug);
+    if (!essay || !window.confirm("Permanently delete “" + essay.title + "”? This removes it from the website and cannot be undone.")) return;
+    formMessage("essay-status", "Deleting…");
+    try {
+      await request("/api/admin/essays?slug=" + encodeURIComponent(essay.slug), { method: "DELETE" });
+      currentSlug = null;
+      essayForm.reset();
+      essayForm.elements.minutes.value = 5;
+      essayForm.elements.status.value = "draft";
+      document.getElementById("form-heading").textContent = "New essay";
+      document.getElementById("send-essay").hidden = true;
+      document.getElementById("delete-essay").hidden = true;
+      formMessage("essay-status", "Essay deleted.");
+      formMessage("broadcast-status", "");
+      await loadEssays();
+    } catch (error) { formMessage("essay-status", error.message); }
   });
 
   document.getElementById("logout-button").addEventListener("click", async () => {
