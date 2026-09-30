@@ -29,7 +29,18 @@
               <label>Excerpt<textarea name="excerpt" maxlength="500" rows="2"></textarea></label>
               <div class="field-row"><label>Publication date<input name="date" type="date" required /></label><label>Reading time (minutes)<input name="minutes" type="number" min="1" max="240" value="5" required /></label></div>
               <label>Tags, separated by commas<input name="tags" placeholder="Writing, Design" /></label>
-              <label>Essay text<textarea name="paragraphs" rows="14" required placeholder="Separate paragraphs with a blank line"></textarea></label>
+              <label>Essay text</label>
+              <div class="rich-editor">
+                <div class="rich-toolbar" data-editor="essay-editor" aria-label="Essay formatting">
+                  <button type="button" data-command="bold" aria-label="Bold"><strong>B</strong></button><button type="button" data-command="italic" aria-label="Italic"><em>I</em></button><button type="button" data-command="underline" aria-label="Underline"><u>U</u></button>
+                  <button type="button" data-command="formatBlock" data-value="h2">Heading</button><button type="button" data-command="formatBlock" data-value="p">Paragraph</button>
+                  <button type="button" data-command="insertUnorderedList">Bullets</button><button type="button" data-command="insertOrderedList">Numbered list</button><button type="button" data-command="formatBlock" data-value="blockquote">Quote</button><button type="button" data-command="createLink">Link</button>
+                  <button type="button" data-mode-toggle="essay">Source</button>
+                </div>
+                <div id="essay-editor" class="rich-canvas" contenteditable="true" role="textbox" aria-label="Essay text" aria-multiline="true"></div>
+                <textarea id="essay-source" class="rich-source" rows="14" aria-label="Essay HTML source" hidden></textarea>
+              </div>
+              <div class="import-row"><label for="essay-doc-url">Google Docs share link<input id="essay-doc-url" type="url" placeholder="https://docs.google.com/document/d/…" /></label><button id="import-essay-doc" class="button-quiet" type="button">Import document</button></div>
               <div class="field-row"><label>Status<select name="status"><option value="draft">Draft</option><option value="published">Published</option></select></label><button type="submit">Save essay</button></div>
               <p id="essay-status" class="admin-status" role="status"></p>
               <button id="send-essay" type="button" class="button-quiet" hidden>Email this essay to confirmed subscribers</button>
@@ -38,6 +49,22 @@
             </form>
           </section>
         </div>
+        <section class="admin-panel site-content-panel">
+          <div class="panel-heading"><div><h2>Other site text</h2><p>Edit the homepage and privacy page without changing code.</p></div></div>
+          <label for="site-content-page">Section<select id="site-content-page"><option value="home-intro">Homepage introduction</option><option value="home-newsletter">Homepage newsletter text</option><option value="footer-note">Footer note</option><option value="privacy">Privacy page</option></select></label>
+          <div class="rich-editor">
+            <div class="rich-toolbar" data-editor="site-editor" aria-label="Site text formatting">
+              <button type="button" data-command="bold" aria-label="Bold"><strong>B</strong></button><button type="button" data-command="italic" aria-label="Italic"><em>I</em></button><button type="button" data-command="underline" aria-label="Underline"><u>U</u></button>
+              <button type="button" data-command="formatBlock" data-value="h2">Heading</button><button type="button" data-command="formatBlock" data-value="p">Paragraph</button>
+              <button type="button" data-command="insertUnorderedList">Bullets</button><button type="button" data-command="insertOrderedList">Numbered list</button><button type="button" data-command="formatBlock" data-value="blockquote">Quote</button><button type="button" data-command="createLink">Link</button>
+              <button type="button" data-mode-toggle="site">Source</button>
+            </div>
+            <div id="site-editor" class="rich-canvas" contenteditable="true" role="textbox" aria-label="Site text" aria-multiline="true"></div>
+            <textarea id="site-source" class="rich-source" rows="14" aria-label="Site text HTML source" hidden></textarea>
+          </div>
+          <div class="import-row"><label for="site-doc-url">Google Docs share link<input id="site-doc-url" type="url" placeholder="https://docs.google.com/document/d/…" /></label><button id="import-site-doc" class="button-quiet" type="button">Import document</button></div>
+          <div class="field-row site-save-row"><p id="site-content-status" class="admin-status" role="status"></p><button id="save-site-content" type="button">Save site text</button></div>
+        </section>
         <section class="admin-panel subscriber-panel"><div class="panel-heading"><div><h2>Newsletter subscribers</h2><p>Only confirmed addresses appear here.</p></div><a class="admin-button" href="/api/admin/subscribers?format=csv">Download CSV</a></div><div id="subscriber-list"></div></section>
       </section>
     </main>

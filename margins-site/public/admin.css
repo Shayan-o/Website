@@ -16,6 +16,23 @@
 .admin-shell .button-danger { background: #8b3028; color: #fff; }
 .admin-shell .button-danger:hover { background: #6e241e; }
 .admin-shell [hidden] { display: none !important; }
+.rich-editor { display: grid; gap: 0; border: 1px solid var(--rule); }
+.rich-toolbar { display: flex; flex-wrap: wrap; gap: 4px; padding: 7px; border-bottom: 1px solid var(--rule); background: #eeece7; }
+.rich-toolbar button { min-height: 32px; padding: 0 9px; background: transparent; color: var(--ink); border: 1px solid transparent; font-size: 12px; }
+.rich-toolbar button:hover { background: #fff; border-color: var(--rule); }
+.rich-canvas, .rich-source { display: block; width: 100%; min-height: 280px; padding: 16px; border: 0; background: var(--paper); color: var(--ink); font: 16px/1.7 var(--serif); overflow: auto; }
+.rich-canvas:focus { outline: 2px solid #76664f; outline-offset: -2px; }
+.rich-canvas blockquote { margin: 1em 0; padding-left: 1em; border-left: 2px solid var(--rule); color: var(--muted); }
+.rich-canvas table { width: 100%; border-collapse: collapse; }
+.rich-canvas th, .rich-canvas td { padding: 7px; border: 1px solid var(--rule); text-align: left; }
+.rich-canvas img { max-width: 100%; height: auto; }
+.rich-source { resize: vertical; font: 13px/1.55 ui-monospace, Consolas, monospace; }
+.import-row { display: grid; grid-template-columns: minmax(220px, 1fr) auto; align-items: end; gap: 12px; margin-top: 13px; }
+.site-content-panel { margin-top: 20px; }
+.site-content-panel > label { display: grid; gap: 6px; max-width: 440px; margin: 18px 0 14px; font-size: 13px; color: #55514c; }
+.site-save-row { margin-top: 12px; }
+.admin-shell .button-danger { background: #8b3028; color: #fff; }
+.admin-shell .button-danger:hover { background: #6e241e; }
 .button-quiet { min-height: 34px !important; background: transparent !important; color: var(--ink) !important; border: 1px solid var(--rule) !important; }
 .admin-heading, .panel-heading { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
 .admin-heading { padding: 34px 0 24px; }
@@ -37,6 +54,7 @@
   .admin-columns { grid-template-columns: 1fr; }
   .admin-panel { padding: 19px; }
   .field-row { grid-template-columns: 1fr; }
+  .import-row { grid-template-columns: 1fr; }
   .admin-heading { align-items: flex-start; }
   .subscriber-panel .panel-heading { align-items: flex-start; flex-direction: column; }
 }

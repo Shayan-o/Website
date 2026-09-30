@@ -5,6 +5,9 @@
   const essayForm = document.getElementById("essay-form");
   let essays = [];
   let currentSlug = null;
+  let siteContent = {};
+  const sourceMode = { essay: false, site: false };
+  const richTags = new Set(["P", "H1", "H2", "H3", "H4", "H5", "H6", "UL", "OL", "LI", "BLOCKQUOTE", "PRE", "CODE", "STRONG", "B", "EM", "I", "U", "S", "DEL", "BR", "HR", "A", "SUP", "SUB", "TABLE", "THEAD", "TBODY", "TR", "TH", "TD", "DIV", "SPAN", "IMG"]);
 
   const request = async (url, options = {}) => {
     const response = await fetch(url, { ...options, headers: { ...(options.body ? { "Content-Type": "application/json" } : {}), ...options.headers } });
@@ -13,14 +16,176 @@
     return result;
   };
 
+  function safeStyle(value) {
+    const safe = [];
+    for (const declaration of value.split(";")) {
+      const parts = declaration.split(":");
+      const name = parts.shift()?.trim().toLowerCase();
+      const val = parts.join(":").trim().toLowerCase();
+      if (!val || /url\s*\(|expression|javascript|var\s*\(/i.test(val)) continue;
+      if (name === "text-align" && /^(left|right|center|justify)$/.test(val)) safe.push(name + ":" + val);
+      if (name === "font-weight" && /^(normal|bold|[1-9]00)$/.test(val)) safe.push(name + ":" + val);
+      if (name === "font-style" && /^(normal|italic|oblique)$/.test(val)) safe.push(name + ":" + val);
+      if (name === "text-decoration" && /^(none|underline|line-through)$/.test(val)) safe.push(name + ":" + val);
+      if (name === "vertical-align" && /^(baseline|sub|super|middle)$/.test(val)) safe.push(name + ":" + val);
+      if (name === "color" && /^(#[0-9a-f]{3,8}|black|white|red|blue|green|gray|grey)$/.test(val)) safe.push(name + ":" + val);
+      if (name === "font-size" && /^(?:[5-9]|[1-4][0-9])(?:px|pt)$/.test(val)) safe.push(name + ":" + val);
+    }
+    return safe.join(";");
+  }
+
+  function sanitizeForEditor(html) {
+    const doc = new DOMParser().parseFromString("<body>" + html + "</body>", "text/html");
+    doc.querySelectorAll("script,style,iframe,object,embed,svg,math,form,input,button,select,textarea,link,meta,base,video,audio,source").forEach((node) => node.remove());
+    for (const element of [...doc.body.querySelectorAll("*")]) {
+      if (!richTags.has(element.tagName)) { element.replaceWith(...element.childNodes); continue; }
+      for (const attr of [...element.attributes]) {
+        const name = attr.name.toLowerCase();
+        if (name === "href" && element.tagName === "A") {
+          if (!/^(https?:\/\/|mailto:|tel:|#(?:fn|note|ftnt|footnote|footnoteref|endnote|endnoteref)[a-z0-9_.:-]*$)/i.test(attr.value)) element.removeAttribute(attr.name);
+        } else if (name === "src" && element.tagName === "IMG") {
+          let url; try { url = new URL(attr.value); } catch {}
+          if (!url || url.protocol !== "https:" || !/(?:^|\.)googleusercontent\.com$/.test(url.hostname)) element.removeAttribute(attr.name);
+        } else if ((name === "alt" || name === "title") && element.tagName === "IMG") {
+        } else if (name === "style") {
+          const style = safeStyle(attr.value); if (style) element.setAttribute("style", style); else element.removeAttribute(attr.name);
+        } else if (name === "id" && element.tagName === "A" && /^(fn|note|ftnt|footnote|footnoteref|endnote|endnoteref)[a-z0-9_.:-]{1,80}$/i.test(attr.value)) {
+        } else if ((name === "colspan" || name === "rowspan") && ["TD", "TH"].includes(element.tagName) && /^[1-9]\d?$/.test(attr.value)) {
+        } else if (name === "start" && element.tagName === "OL" && /^\d{1,4}$/.test(attr.value)) {
+        } else element.removeAttribute(attr.name);
+      }
+      if (element.tagName === "A" && /^https?:\/\//i.test(element.getAttribute("href") || "")) element.setAttribute("rel", "noopener noreferrer");
+    }
+    return doc.body.innerHTML;
+  }
+
+  function importGoogleHtml(sourceHtml) {
+    const doc = new DOMParser().parseFromString(sourceHtml, "text/html");
+    const classStyles = new Map();
+    for (const style of doc.querySelectorAll("style")) {
+      const css = style.textContent || "";
+      for (const match of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+        const properties = safeStyle(match[2]);
+        if (!properties) continue;
+        for (const className of match[1].matchAll(/\.([a-z0-9_-]+)/gi)) classStyles.set(className[1], [classStyles.get(className[1]), properties].filter(Boolean).join(";"));
+      }
+    }
+    doc.querySelectorAll("style").forEach((node) => node.remove());
+    for (const element of doc.body.querySelectorAll("*")) {
+      const mapped = [...element.classList].map((name) => classStyles.get(name)).filter(Boolean).join(";");
+      const inline = element.getAttribute("style") || "";
+      const style = safeStyle([mapped, inline].filter(Boolean).join(";"));
+      if (style) element.setAttribute("style", style);
+      element.removeAttribute("class");
+    }
+    return sanitizeForEditor(doc.body.innerHTML);
+  }
+
+  function editorParts(kind) {
+    return kind === "essay"
+      ? { visual: document.getElementById("essay-editor"), source: document.getElementById("essay-source") }
+      : { visual: document.getElementById("site-editor"), source: document.getElementById("site-source") };
+  }
+
+  function setEditorHtml(kind, html) {
+    const parts = editorParts(kind);
+    parts.visual.innerHTML = sanitizeForEditor(html);
+    parts.source.value = parts.visual.innerHTML;
+    parts.visual.hidden = false;
+    parts.source.hidden = true;
+    sourceMode[kind] = false;
+    document.querySelector('[data-mode-toggle="' + kind + '"]').textContent = "Source";
+  }
+
+  function editorHtml(kind) {
+    const parts = editorParts(kind);
+    return sanitizeForEditor(sourceMode[kind] ? parts.source.value : parts.visual.innerHTML);
+  }
+
+  function plainText(html) {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    return (doc.body.innerText || doc.body.textContent || "").split(/\n\s*\n/).map((part) => part.trim()).filter(Boolean);
+  }
+
   function formMessage(id, text) { document.getElementById(id).textContent = text; }
 
   async function showEditor() {
     loginPanel.hidden = true;
     editorPanel.hidden = false;
     await loadEssays();
+    await loadSiteContent();
     await loadSubscribers();
   }
+
+  async function loadSiteContent() {
+    const result = await request("/api/admin/site-content");
+    siteContent = result.content || {};
+    loadSiteSection();
+  }
+
+  function loadSiteSection() {
+    const key = document.getElementById("site-content-page").value;
+    setEditorHtml("site", siteContent[key] || "<p></p>");
+    formMessage("site-content-status", "");
+  }
+
+  async function importGoogleDoc(urlInput, kind, button) {
+    const url = urlInput.value.trim();
+    if (!url) { formMessage(kind === "essay" ? "essay-status" : "site-content-status", "Paste a Google Docs share link first."); return; }
+    const statusId = kind === "essay" ? "essay-status" : "site-content-status";
+    button.disabled = true;
+    formMessage(statusId, "Importing document…");
+    try {
+      const result = await request("/api/admin/import-google-doc", { method: "POST", body: JSON.stringify({ url }) });
+      setEditorHtml(kind, importGoogleHtml(result.sourceHtml));
+      formMessage(statusId, "Imported. Review the formatting and notes, then save.");
+    } catch (error) { formMessage(statusId, error.message); }
+    finally { button.disabled = false; }
+  }
+
+  document.querySelectorAll(".rich-toolbar").forEach((toolbar) => {
+    toolbar.addEventListener("click", (event) => {
+      const button = event.target.closest("button");
+      if (!button) return;
+      const kind = toolbar.dataset.editor === "essay-editor" ? "essay" : "site";
+      if (button.dataset.modeToggle) {
+        const parts = editorParts(kind);
+        if (!sourceMode[kind]) {
+          parts.source.value = parts.visual.innerHTML;
+          parts.visual.hidden = true; parts.source.hidden = false;
+          sourceMode[kind] = true; button.textContent = "Visual"; parts.source.focus();
+        } else {
+          setEditorHtml(kind, parts.source.value);
+          parts.visual.focus();
+        }
+        return;
+      }
+      if (sourceMode[kind]) return;
+      const editor = editorParts(kind).visual;
+      editor.focus();
+      if (button.dataset.command === "createLink") {
+        const url = window.prompt("Paste the link URL");
+        if (url) document.execCommand("createLink", false, url);
+      } else document.execCommand(button.dataset.command, false, button.dataset.value || null);
+    });
+  });
+
+  document.getElementById("site-content-page").addEventListener("change", loadSiteSection);
+  document.getElementById("import-essay-doc").addEventListener("click", (event) => importGoogleDoc(document.getElementById("essay-doc-url"), "essay", event.currentTarget));
+  document.getElementById("import-site-doc").addEventListener("click", (event) => importGoogleDoc(document.getElementById("site-doc-url"), "site", event.currentTarget));
+  document.getElementById("save-site-content").addEventListener("click", async () => {
+    const button = document.getElementById("save-site-content");
+    const pageKey = document.getElementById("site-content-page").value;
+    button.disabled = true;
+    formMessage("site-content-status", "Saving…");
+    try {
+      const result = await request("/api/admin/site-content", { method: "PUT", body: JSON.stringify({ pageKey, contentHtml: editorHtml("site") }) });
+      siteContent[pageKey] = result.contentHtml;
+      setEditorHtml("site", result.contentHtml);
+      formMessage("site-content-status", "Site text saved and published.");
+    } catch (error) { formMessage("site-content-status", error.message); }
+    finally { button.disabled = false; }
+  });
 
   async function loadEssays() {
     const result = await request("/api/admin/essays");
@@ -77,7 +242,8 @@
     essayForm.elements.date.value = essay.dateValue;
     essayForm.elements.minutes.value = essay.minutes;
     essayForm.elements.tags.value = essay.tags.join(", ");
-    essayForm.elements.paragraphs.value = essay.paragraphs.join("\n\n");
+    const fallbackHtml = essay.paragraphs.map((paragraph) => "<p>" + paragraph.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]) + "</p>").join("");
+    setEditorHtml("essay", essay.contentHtml || fallbackHtml);
     essayForm.elements.status.value = essay.status;
     document.getElementById("form-heading").textContent = "Edit: " + essay.title;
     document.getElementById("send-essay").hidden = essay.status !== "published";
@@ -90,6 +256,7 @@
     essayForm.reset();
     essayForm.elements.minutes.value = 5;
     essayForm.elements.status.value = "draft";
+    setEditorHtml("essay", "<p></p>");
     document.getElementById("form-heading").textContent = "New essay";
     document.getElementById("send-essay").hidden = true;
     document.getElementById("delete-essay").hidden = true;
@@ -108,11 +275,13 @@
   essayForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const data = new FormData(essayForm);
+    const contentHtml = editorHtml("essay");
     const essay = {
       title: data.get("title"), slug: data.get("slug"), excerpt: data.get("excerpt"), date: data.get("date"),
       minutes: Number(data.get("minutes")), tags: data.get("tags").split(",").map((tag) => tag.trim()).filter(Boolean),
-      paragraphs: data.get("paragraphs").split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean), status: data.get("status")
+      paragraphs: plainText(contentHtml), contentHtml, status: data.get("status")
     };
+    if (!essay.paragraphs.length) { formMessage("essay-status", "Add essay text before saving."); return; }
     formMessage("essay-status", "Saving…");
     try {
       await request("/api/admin/essays", { method: "PUT", body: JSON.stringify(essay) });
@@ -145,6 +314,7 @@
       essayForm.reset();
       essayForm.elements.minutes.value = 5;
       essayForm.elements.status.value = "draft";
+      setEditorHtml("essay", "<p></p>");
       document.getElementById("form-heading").textContent = "New essay";
       document.getElementById("send-essay").hidden = true;
       document.getElementById("delete-essay").hidden = true;

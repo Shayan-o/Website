@@ -1,5 +1,6 @@
 (() => {
   let essays = window.MARGINS_ESSAYS;
+  let siteContent = {};
   const app = document.getElementById("app");
   let allTags = [...new Set(essays.flatMap((essay) => essay.tags))].sort();
 
@@ -8,6 +9,9 @@
   })[char]);
   const essayUrl = (essay) => `/essays/${encodeURIComponent(essay.slug)}`;
   const tagUrl = (tag) => `/tags/${encodeURIComponent(tag.toLowerCase())}`;
+  const defaultIntro = "<h1>Essays, written slowly.</h1><p>Short pieces on writing, the quiet decisions inside the tools we use, and paying attention on purpose. New writing a few times a year.</p>";
+  const defaultNewsletter = '<h2 class="eyebrow" id="newsletter-heading">NEWSLETTER</h2><p>Get new essays by email. Low volume, no noise.</p>';
+  const defaultFooterNote = "<p>No tracking, no reader accounts. Essays are stored in the site database; newsletter email is handled by the configured delivery provider.</p>";
   const essayCard = (essay) => `
     <a class="essay-card" href="${essayUrl(essay)}" data-nav>
       <h3>${escapeHtml(essay.title)}</h3>
@@ -18,7 +22,7 @@
   function footer() {
     return `<footer class="site-footer">
       <nav aria-label="Footer"><a href="/" data-nav>Home</a><a href="/tags" data-nav>Tags</a><a href="/privacy.html">Privacy</a></nav>
-      <p>No tracking, no reader accounts. Essays are stored in the site database; newsletter email is handled by the configured delivery provider.</p>
+      <div class="footer-note">${siteContent["footer-note"] || defaultFooterNote}</div>
     </footer>`;
   }
 
@@ -27,16 +31,14 @@
     return `<main class="home-page">
       <header class="intro">
         <a class="wordmark" href="/" data-nav>MARGINS</a>
-        <h1>Essays, written slowly.</h1>
-        <p>Short pieces on writing, the quiet decisions inside the tools we use, and paying attention on purpose. New writing a few times a year.</p>
+        <div class="editable-site-copy">${siteContent["home-intro"] || defaultIntro}</div>
       </header>
       <section class="writing" aria-labelledby="writing-heading">
         <h2 class="eyebrow" id="writing-heading">WRITING</h2>
         <div class="essay-list">${essays.map(essayCard).join("")}</div>
       </section>
       <section class="newsletter" aria-labelledby="newsletter-heading">
-        <h2 class="eyebrow" id="newsletter-heading">NEWSLETTER</h2>
-        <p>Get new essays by email. Low volume, no noise.</p>
+        <div class="editable-site-copy">${siteContent["home-newsletter"] || defaultNewsletter}</div>
         <form id="newsletter-form">
           <label class="visually-hidden" for="newsletter-email">Email address</label>
           <input id="newsletter-email" type="email" placeholder="you@email.com" autocomplete="email" required />
@@ -70,7 +72,7 @@
     return `<main class="essay-page"><a class="back-link" href="/" data-nav>← MARGINS</a>
       <article><header class="essay-header"><h1>${escapeHtml(essay.title)}</h1>
         <p class="meta">${escapeHtml(essay.date)} · ${essay.minutes} min</p></header>
-        <div class="essay-body">${essay.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("")}</div>
+        <div class="essay-body">${essay.contentHtml || essay.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("")}</div>
         <div class="article-tags">${essay.tags.map((tag) => `<a href="${tagUrl(tag)}" data-nav>${escapeHtml(tag)}</a>`).join("")}</div>
       </article><a class="more-link" href="/" data-nav>More essays</a>${footer()}</main>`;
   }
@@ -124,5 +126,8 @@
   render();
   fetch("/api/essays").then((response) => response.ok ? response.json() : null).then((result) => {
     if (result && Array.isArray(result.essays)) { essays = result.essays; allTags = [...new Set(essays.flatMap((essay) => essay.tags))].sort(); render(); }
+  }).catch(() => {});
+  fetch("/api/site-content").then((response) => response.ok ? response.json() : null).then((result) => {
+    if (result && result.content) { siteContent = result.content; render(); }
   }).catch(() => {});
 })();
