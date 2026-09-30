@@ -29,7 +29,74 @@ export function normalizeEssay(input) {
   const paragraphs = Array.isArray(input.paragraphs) ? input.paragraphs.map((x) => clean(x, 12000)).filter(Boolean).slice(0, 100) : [];
   const status = input.status === "published" ? "published" : "draft";
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || !title || !/^\d{4}-\d{2}-\d{2}$/.test(publishedOn) || !Number.isFinite(minutes) || minutes < 1 || minutes > 240 || paragraphs.length === 0) return null;
-  return { slug, title, excerpt, date: publishedOn, minutes, tags, paragraphs, status };
+  return { slug, title, excerpt, date: publishedOn, minutes, tags, paragraphs, status,
+    contentHtml: typeof input.contentHtml === "string" ? input.contentHtml : "" };
+}
+
+const richTags = new Set(["p", "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "li", "blockquote", "pre", "code", "strong", "b", "em", "i", "u", "s", "del", "br", "hr", "a", "sup", "sub", "table", "thead", "tbody", "tr", "th", "td", "div", "span", "img"]);
+const dropTags = "script,style,iframe,object,embed,svg,math,form,input,button,select,textarea,link,meta,base,video,audio,source";
+
+function safeRichStyle(value) {
+  const allowed = [];
+  for (const item of value.split(";")) {
+    const [rawName, ...rest] = item.split(":");
+    const name = rawName?.trim().toLowerCase();
+    const val = rest.join(":").trim().toLowerCase();
+    if (!val || /url\s*\(|expression|javascript|var\s*\(/i.test(val)) continue;
+    if (name === "text-align" && /^(left|right|center|justify)$/.test(val)) allowed.push(`${name}:${val}`);
+    if (name === "font-weight" && /^(normal|bold|[1-9]00)$/.test(val)) allowed.push(`${name}:${val}`);
+    if (name === "font-style" && /^(normal|italic|oblique)$/.test(val)) allowed.push(`${name}:${val}`);
+    if (name === "text-decoration" && /^(none|underline|line-through)$/.test(val)) allowed.push(`${name}:${val}`);
+    if (name === "vertical-align" && /^(baseline|sub|super|middle)$/.test(val)) allowed.push(`${name}:${val}`);
+    if (name === "color" && /^(#[0-9a-f]{3,8}|black|white|red|blue|green|gray|grey)$/.test(val)) allowed.push(`${name}:${val}`);
+    if (name === "font-size" && /^(?:[5-9]|[1-4][0-9])(?:px|pt)$/.test(val)) allowed.push(`${name}:${val}`);
+  }
+  return allowed.join(";");
+}
+
+export async function sanitizeRichHtml(input, maxLength = 300000) {
+  if (typeof input !== "string") return "";
+  if (input.length > maxLength) return "";
+  const html = input.trim();
+  if (!html) return "";
+  const wrapped = new Response(`<html><body>${html}</body></html>`, { headers: { "Content-Type": "text/html; charset=utf-8" } });
+  const safe = new HTMLRewriter()
+    .on(dropTags, { element(element) { element.remove(); } })
+    .on("*", { element(element) {
+      const tag = element.tagName.toLowerCase();
+      if (!richTags.has(tag)) { element.removeAndKeepContent(); return; }
+      if (tag === "img") {
+        const src = element.getAttribute("src") || "";
+        let imageUrl;
+        try { imageUrl = new URL(src); } catch {}
+        if (!imageUrl || imageUrl.protocol !== "https:" || !/(?:^|\.)googleusercontent\.com$/i.test(imageUrl.hostname)) {
+          element.remove();
+          return;
+        }
+      }
+      for (const [name, value] of [...element.attributes]) {
+        const attr = name.toLowerCase();
+        if (attr === "href" && tag === "a") {
+          if (!/^(?:https?:\/\/|mailto:|tel:|#(?:fn|note|ftnt|footnote|footnoteref|endnote|endnoteref)[a-z0-9_.:-]*$)/i.test(value)) element.removeAttribute(name);
+          else if (/^https?:\/\//i.test(value)) element.setAttribute("rel", "noopener noreferrer");
+          continue;
+        }
+        if (attr === "src" && tag === "img") continue;
+        if ((attr === "alt" || attr === "title") && tag === "img") continue;
+        if (attr === "style") {
+          const style = safeRichStyle(value);
+          if (style) element.setAttribute("style", style); else element.removeAttribute(name);
+          continue;
+        }
+        if (attr === "id" && tag === "a" && /^(?:fn|note|ftnt|footnote|footnoteref|endnote|endnoteref)[a-z0-9_.:-]{1,80}$/i.test(value)) continue;
+        if ((attr === "colspan" || attr === "rowspan") && (tag === "td" || tag === "th") && /^[1-9]\d?$/.test(value)) continue;
+        if (attr === "start" && tag === "ol" && /^\d{1,4}$/.test(value)) continue;
+        element.removeAttribute(name);
+      }
+    } })
+    .transform(wrapped);
+  const result = await safe.text();
+  return result.replace(/^.*?<body>/is, "").replace(/<\/body>.*$/is, "").trim();
 }
 
 export async function toEssay(row) {
@@ -42,6 +109,7 @@ export async function toEssay(row) {
     minutes: row.minutes,
     tags: JSON.parse(row.tags_json || "[]"),
     paragraphs: JSON.parse(row.paragraphs_json || "[]"),
+    contentHtml: row.content_html || "",
     status: row.status
   };
 }
