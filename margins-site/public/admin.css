@@ -15,6 +15,7 @@
 .admin-shell button:hover, .admin-button:hover { background: #403b35; }
 .admin-shell .button-danger { background: #8b3028; color: #fff; }
 .admin-shell .button-danger:hover { background: #6e241e; }
+.admin-shell [hidden] { display: none !important; }
 .button-quiet { min-height: 34px !important; background: transparent !important; color: var(--ink) !important; border: 1px solid var(--rule) !important; }
 .admin-heading, .panel-heading { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
 .admin-heading { padding: 34px 0 24px; }
