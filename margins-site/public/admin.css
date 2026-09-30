@@ -13,6 +13,8 @@
 .admin-shell small { color: var(--muted); }
 .admin-shell button, .admin-button { min-height: 42px; padding: 0 16px; border: 0; background: var(--ink); color: var(--paper); font: 14px var(--sans); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
 .admin-shell button:hover, .admin-button:hover { background: #403b35; }
+.admin-shell .button-danger { background: #8b3028; color: #fff; }
+.admin-shell .button-danger:hover { background: #6e241e; }
 .button-quiet { min-height: 34px !important; background: transparent !important; color: var(--ink) !important; border: 1px solid var(--rule) !important; }
 .admin-heading, .panel-heading { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
 .admin-heading { padding: 34px 0 24px; }
