@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#f8f7f3" />
+    <title>Editorial — Margins</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/admin.css" />
+    <script src="/admin.js" defer></script>
+  </head>
+  <body>
+    <main class="admin-shell">
+      <header class="admin-top"><a class="wordmark" href="/">MARGINS</a><span>EDITORIAL</span></header>
+      <section id="login-panel" class="admin-panel" hidden>
+        <h1>Sign in</h1>
+        <p>Use the admin password configured in Cloudflare.</p>
+        <form id="login-form"><label for="admin-password">Password</label><input id="admin-password" name="admin-password" type="password" autocomplete="current-password" required /><button>Sign in</button><p id="login-status" class="admin-status" role="status"></p></form>
+      </section>
+      <section id="editor-panel" hidden>
+        <div class="admin-heading"><div><h1>Editorial</h1><p>Write, edit, and publish essays.</p></div><button id="logout-button" class="button-quiet">Sign out</button></div>
+        <div class="admin-columns">
+          <aside class="admin-panel"><div class="panel-heading"><h2>Essays</h2><button id="new-essay" class="button-quiet">New essay</button></div><div id="essay-list" class="admin-essay-list"></div></aside>
+          <section class="admin-panel"><h2 id="form-heading">New essay</h2>
+            <form id="essay-form" class="essay-form">
+              <label>Title<input name="title" maxlength="180" required /></label>
+              <label>URL slug<input name="slug" pattern="[a-z0-9]+(-[a-z0-9]+)*" maxlength="100" required /><small>Lowercase letters, numbers, and hyphens.</small></label>
+              <label>Excerpt<textarea name="excerpt" maxlength="500" rows="2"></textarea></label>
+              <div class="field-row"><label>Publication date<input name="date" type="date" required /></label><label>Reading time (minutes)<input name="minutes" type="number" min="1" max="240" value="5" required /></label></div>
+              <label>Tags, separated by commas<input name="tags" placeholder="Writing, Design" /></label>
+              <label>Essay text<textarea name="paragraphs" rows="14" required placeholder="Separate paragraphs with a blank line"></textarea></label>
+              <div class="field-row"><label>Status<select name="status"><option value="draft">Draft</option><option value="published">Published</option></select></label><button type="submit">Save essay</button></div>
+              <p id="essay-status" class="admin-status" role="status"></p>
+              <button id="send-essay" type="button" class="button-quiet" hidden>Email this essay to confirmed subscribers</button>
+              <p id="broadcast-status" class="admin-status" role="status"></p>
+            </form>
+          </section>
+        </div>
+        <section class="admin-panel subscriber-panel"><div class="panel-heading"><div><h2>Newsletter subscribers</h2><p>Only confirmed addresses appear here.</p></div><a class="admin-button" href="/api/admin/subscribers?format=csv">Download CSV</a></div><div id="subscriber-list"></div></section>
+      </section>
+    </main>
+  </body>
+</html>
