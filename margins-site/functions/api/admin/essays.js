@@ -13,11 +13,25 @@ export async function onRequestPut({ request, env }) {
   if (!env.DB) return fail("The content database is not configured yet.", 503);
   const essay = normalizeEssay(await readJson(request));
   if (!essay) return fail("Check the title, URL slug, date, reading time, tags, and essay paragraphs.");
-  await env.DB.prepare(`INSERT INTO essays (slug, title, excerpt, published_on, minutes, tags_json, paragraphs_json, status, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-    ON CONFLICT(slug) DO UPDATE SET title = excluded.title, excerpt = excluded.excerpt, published_on = excluded.published_on,
-    minutes = excluded.minutes, tags_json = excluded.tags_json, paragraphs_json = excluded.paragraphs_json,
-    status = excluded.status, updated_at = CURRENT_TIMESTAMP`)
+  const sql = "INSERT INTO essays (slug, title, excerpt, published_on, minutes, tags_json, paragraphs_json, status, updated_at) " +
+    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP) " +
+    "ON CONFLICT(slug) DO UPDATE SET title = excluded.title, excerpt = excluded.excerpt, published_on = excluded.published_on, " +
+    "minutes = excluded.minutes, tags_json = excluded.tags_json, paragraphs_json = excluded.paragraphs_json, " +
+    "status = excluded.status, updated_at = CURRENT_TIMESTAMP";
+  await env.DB.prepare(sql)
     .bind(essay.slug, essay.title, essay.excerpt, essay.date, essay.minutes, JSON.stringify(essay.tags), JSON.stringify(essay.paragraphs), essay.status).run();
   return json({ saved: true, essay });
+}
+
+export async function onRequestDelete({ request, env }) {
+  if (!validOrigin(request)) return fail("Invalid request origin.", 403);
+  if (!(await hasAdmin(request, env))) return fail("Sign in to manage essays.", 401);
+  if (!env.DB) return fail("The content database is not configured yet.", 503);
+  const slug = new URL(request.url).searchParams.get("slug")?.trim();
+  if (!slug || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 100) {
+    return fail("Choose a valid essay to delete.");
+  }
+  const result = await env.DB.prepare("DELETE FROM essays WHERE slug = ?").bind(slug).run();
+  if (!result.meta?.changes) return fail("That essay could not be found.", 404);
+  return json({ deleted: true, slug });
 }
