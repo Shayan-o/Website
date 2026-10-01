@@ -10,6 +10,8 @@ export async function onRequestPost({ request, env }) {
   const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
   if (!body?.consent) return fail("Please agree to receive the newsletter.");
   if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail("Enter a valid email address.");
+  const existing = await env.DB.prepare("SELECT active, confirmed_at FROM newsletter_subscribers WHERE email = ?").bind(email).first();
+  if (existing?.active && existing.confirmed_at) return json({ ok: true, alreadySubscribed: true }, 202);
   const secret = env.SESSION_SECRET || "margins-newsletter-rate-limit";
   const ipKey = await tokenHash(`${secret}:subscribe-ip:${request.headers.get("CF-Connecting-IP") || "unknown"}`);
   const emailKey = await tokenHash(`${secret}:subscribe-email:${email}`);
@@ -19,16 +21,16 @@ export async function onRequestPost({ request, env }) {
   const tokenDigest = await tokenHash(token);
   const expiresAt = Date.now() + 24 * 60 * 60 * 1000;
   const confirmUrl = `${new URL(request.url).origin}/confirm.html?token=${encodeURIComponent(token)}`;
-  const sent = await sendEmail(env, {
+  const now = new Date().toISOString();
+  await env.DB.prepare("INSERT INTO newsletter_subscribers (email, consent_at, active) VALUES (?, ?, 0) ON CONFLICT(email) DO UPDATE SET consent_at = excluded.consent_at, active = 0, confirmed_at = NULL, created_at = CURRENT_TIMESTAMP").bind(email, now).run();
+  await env.DB.prepare("DELETE FROM newsletter_tokens WHERE email = ? AND purpose = 'confirm'").bind(email).run();
+  await env.DB.prepare("INSERT INTO newsletter_tokens (token_hash, email, purpose, expires_at) VALUES (?, ?, 'confirm', ?)").bind(tokenDigest, email, expiresAt).run();
+  let sent = false;
+  try { sent = await sendEmail(env, {
     to: email,
     subject: "Confirm your Margins subscription",
     html: `<p>Confirm that you want to receive new essays from Margins.</p><p><a href="${confirmUrl}">Confirm subscription</a></p><p>This link expires in 24 hours. If you did not request this, you can ignore the message.</p>`
-  });
-  if (!sent) return fail("Newsletter email is not configured yet. Your address was not saved. Please try again later.", 503);
-
-  const now = new Date().toISOString();
-  await env.DB.prepare("INSERT INTO newsletter_subscribers (email, consent_at, active) VALUES (?, ?, 0) ON CONFLICT(email) DO UPDATE SET consent_at = excluded.consent_at").bind(email, now).run();
-  await env.DB.prepare("DELETE FROM newsletter_tokens WHERE email = ? AND purpose = 'confirm'").bind(email).run();
-  await env.DB.prepare("INSERT INTO newsletter_tokens (token_hash, email, purpose, expires_at) VALUES (?, ?, 'confirm', ?)").bind(tokenDigest, email, expiresAt).run();
-  return json({ ok: true, message: "Check your email for a confirmation link. The link expires in 24 hours." }, 202);
+  }); } catch { sent = false; }
+  if (!sent) return json({ ok: true, confirmationSent: false }, 202);
+  return json({ ok: true, confirmationSent: true }, 202);
 }
