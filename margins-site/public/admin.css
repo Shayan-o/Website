@@ -30,6 +30,9 @@
 .rich-source { resize: vertical; font: 13px/1.55 ui-monospace, Consolas, monospace; }
 .import-row { display: grid; grid-template-columns: minmax(220px, 1fr) auto; align-items: end; gap: 12px; margin-top: 13px; }
 .site-content-panel { margin-top: 20px; }
+.site-settings-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin: 18px 0; }
+.site-settings-fields label { display: grid; gap: 6px; font-size: 13px; color: #55514c; }
+.site-settings-fields input { width: 100%; padding: 10px; border: 1px solid var(--rule); background: transparent; font: inherit; }
 .site-content-panel > label { display: grid; gap: 6px; max-width: 440px; margin: 18px 0 14px; font-size: 13px; color: #55514c; }
 .site-save-row { margin-top: 12px; }
 .admin-shell .button-danger { background: #8b3028; color: #fff; }

@@ -12,6 +12,11 @@
   const defaultIntro = "<h1>Essays, written slowly.</h1><p>Short pieces on writing, the quiet decisions inside the tools we use, and paying attention on purpose. New writing a few times a year.</p>";
   const defaultNewsletter = '<h2 class="eyebrow" id="newsletter-heading">NEWSLETTER</h2><p>Get new essays by email. Low volume, no noise.</p>';
   const defaultFooterNote = "<p>No tracking, no reader accounts. Essays are stored in the site database; newsletter email is handled by the configured delivery provider.</p>";
+  const settingText = (key, fallback) => {
+    if (!siteContent[key]) return fallback;
+    const doc = new DOMParser().parseFromString(siteContent[key], "text/html");
+    return doc.body.textContent.trim() || fallback;
+  };
   const essayCard = (essay) => `
     <a class="essay-card" href="${essayUrl(essay)}" data-nav>
       <h3>${escapeHtml(essay.title)}</h3>
@@ -93,7 +98,33 @@
       const essay = essays.find((item) => item.slug === parts[1]);
       app.innerHTML = essay ? essayPage(essay) : notFound();
     } else app.innerHTML = notFound();
+    applyNewsletterSettings();
+    if (document.title.includes("Margins")) document.title = document.title.replaceAll("Margins", settingText("site-brand", "Margins"));
     window.scrollTo(0, 0);
+  }
+
+  function applyNewsletterSettings() {
+    const brand = settingText("site-brand", "Margins");
+    document.querySelectorAll(".wordmark").forEach((element) => { element.textContent = brand; });
+    document.querySelectorAll(".back-link").forEach((element) => { element.textContent = "← " + brand; });
+    const form = document.getElementById("newsletter-form");
+    if (form) {
+      const email = document.getElementById("newsletter-email");
+      const emailLabel = form.querySelector('label[for="newsletter-email"]');
+      const consent = document.getElementById("newsletter-consent");
+      const consentLabel = consent?.closest("label");
+      if (email) email.placeholder = settingText("newsletter-placeholder", "you@email.com");
+      if (emailLabel) emailLabel.textContent = settingText("newsletter-email-label", "Email address");
+      if (consentLabel && consent) consentLabel.lastChild.textContent = " " + settingText("newsletter-consent", "I agree to receive new essays by email. I can unsubscribe at any time.");
+      const button = form.querySelector('button[type="submit"]');
+      if (button) button.textContent = settingText("newsletter-button", "Subscribe");
+      const note = form.querySelector(".form-note");
+      if (note) note.textContent = settingText("newsletter-note", "Your email is stored in the site database. Confirm your subscription before receiving essays.");
+    }
+    const links = document.querySelectorAll(".site-footer nav a");
+    if (links[0]) links[0].textContent = settingText("footer-home-label", "Home");
+    if (links[1]) links[1].textContent = settingText("footer-tags-label", "Tags");
+    if (links[2]) links[2].textContent = settingText("footer-privacy-label", "Privacy");
   }
 
   document.addEventListener("click", (event) => {
@@ -110,7 +141,7 @@
     const email = document.getElementById("newsletter-email").value;
     const button = event.target.querySelector("button[type=submit]");
     button.disabled = true;
-    status.textContent = "Adding you to the list…";
+    status.textContent = settingText("newsletter-sending", "Adding you to the list…");
     fetch("/api/newsletter/subscribe", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -118,10 +149,10 @@
     }).then(async (response) => {
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.error || "Signup is not available right now.");
-      status.textContent = result.message || "Please check your email to confirm your subscription.";
+      status.textContent = result.alreadySubscribed ? settingText("newsletter-existing", "This address is already subscribed.") : result.confirmationSent ? settingText("newsletter-success", "Check your email for a confirmation link. Your signup is pending until you confirm.") : settingText("newsletter-pending", "Your address was saved as pending. Email confirmation is not configured yet, so you are not subscribed until you confirm.");
       event.target.reset();
     }).catch((error) => {
-      status.textContent = error.message || "Signup is not available right now. Please try again later.";
+      status.textContent = error.message || settingText("newsletter-error", "Signup is not available right now. Please try again later.");
     }).finally(() => { button.disabled = false; });
   });
   window.addEventListener("popstate", render);

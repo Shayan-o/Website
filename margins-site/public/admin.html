@@ -6,9 +6,9 @@
     <meta name="robots" content="noindex, nofollow" />
     <meta name="theme-color" content="#f8f7f3" />
     <title>Editorial — Margins</title>
-    <link rel="stylesheet" href="/styles.css?v=endnotes-1" />
-    <link rel="stylesheet" href="/admin.css?v=endnotes-1" />
-    <script src="/admin.js?v=endnotes-1" defer></script>
+    <link rel="stylesheet" href="/styles.css?v=newsletter-settings-1" />
+    <link rel="stylesheet" href="/admin.css?v=newsletter-settings-1" />
+    <script src="/admin.js?v=newsletter-settings-1" defer></script>
   </head>
   <body>
     <main class="admin-shell">
@@ -67,7 +67,9 @@
         </div>
         <section class="admin-panel site-content-panel">
           <div class="panel-heading"><div><h2>Other site text</h2><p>Edit the homepage and privacy page without changing code.</p></div></div>
-          <label for="site-content-page">Section<select id="site-content-page"><option value="home-intro">Homepage introduction</option><option value="home-newsletter">Homepage newsletter text</option><option value="footer-note">Footer note</option><option value="privacy">Privacy page</option></select></label>
+          <label for="site-content-page">Section<select id="site-content-page"><option value="home-intro">Homepage introduction</option><option value="home-newsletter">Newsletter heading and description</option><option value="brand-settings">Site name and wordmark</option><option value="newsletter-settings">Newsletter form labels and messages</option><option value="footer-settings">Footer link labels</option><option value="footer-note">Footer note</option><option value="privacy">Privacy page</option></select></label>
+          <div id="site-settings-fields" class="site-settings-fields" hidden></div>
+          <div id="site-rich-fields">
           <div class="rich-editor">
             <div class="rich-toolbar" data-editor="site-editor" aria-label="Site text formatting">
               <button type="button" data-command="bold" aria-label="Bold"><strong>B</strong></button><button type="button" data-command="italic" aria-label="Italic"><em>I</em></button><button type="button" data-command="underline" aria-label="Underline"><u>U</u></button>
@@ -79,9 +81,10 @@
             <textarea id="site-source" class="rich-source" rows="14" aria-label="Site text HTML source" hidden></textarea>
           </div>
           <div class="import-row"><label for="site-doc-url">Google Docs share link<input id="site-doc-url" type="url" placeholder="https://docs.google.com/document/d/…" /></label><button id="import-site-doc" class="button-quiet" type="button">Import document</button></div>
+          </div>
           <div class="field-row site-save-row"><p id="site-content-status" class="admin-status" role="status"></p><button id="save-site-content" type="button">Save site text</button></div>
         </section>
-        <section class="admin-panel subscriber-panel"><div class="panel-heading"><div><h2>Newsletter subscribers</h2><p>Only confirmed addresses appear here.</p></div><a class="admin-button" href="/api/admin/subscribers?format=csv">Download CSV</a></div><div id="subscriber-list"></div></section>
+        <section class="admin-panel subscriber-panel"><div class="panel-heading"><div><h2>Newsletter mailing list</h2><p>Pending addresses are stored but receive no newsletter until they confirm. CSV includes confirmed subscribers only.</p></div><a class="admin-button" href="/api/admin/subscribers?format=csv">Download confirmed CSV</a></div><div id="subscriber-list"></div></section>
       </section>
     </main>
   </body>

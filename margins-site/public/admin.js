@@ -7,6 +7,26 @@
   let currentSlug = null;
   let siteContent = {};
   const sourceMode = { essay: false, endnotes: false, sources: false, site: false };
+  const siteSettingGroups = {
+    "brand-settings": [["site-brand", "Site name and wordmark", "Margins"]],
+    "newsletter-settings": [
+      ["newsletter-email-label", "Email field label", "Email address"],
+      ["newsletter-placeholder", "Email placeholder", "you@email.com"],
+      ["newsletter-consent", "Consent checkbox text", "I agree to receive new essays by email. I can unsubscribe at any time."],
+      ["newsletter-button", "Subscribe button", "Subscribe"],
+      ["newsletter-note", "Privacy and delivery note", "Your email is stored in the site database. Confirm your subscription before receiving essays."],
+      ["newsletter-sending", "Submitting message", "Adding you to the list…"],
+      ["newsletter-success", "Confirmation sent message", "Check your email for a confirmation link. Your signup is pending until you confirm."],
+      ["newsletter-pending", "Confirmation unavailable message", "Your address was saved as pending. Email confirmation is not configured yet, so you are not subscribed until you confirm."],
+      ["newsletter-existing", "Already subscribed message", "This address is already subscribed."],
+      ["newsletter-error", "Generic error message", "Signup is not available right now. Please try again later."]
+    ],
+    "footer-settings": [
+      ["footer-home-label", "Home link", "Home"],
+      ["footer-tags-label", "Tags link", "Tags"],
+      ["footer-privacy-label", "Privacy link", "Privacy"]
+    ]
+  };
   const richTags = new Set(["P", "H1", "H2", "H3", "H4", "H5", "H6", "UL", "OL", "LI", "BLOCKQUOTE", "PRE", "CODE", "STRONG", "B", "EM", "I", "U", "S", "DEL", "BR", "HR", "A", "SUP", "SUB", "TABLE", "THEAD", "TBODY", "TR", "TH", "TD", "DIV", "SPAN", "IMG"]);
 
   const request = async (url, options = {}) => {
@@ -135,11 +155,36 @@
   async function loadSiteContent() {
     const result = await request("/api/admin/site-content");
     siteContent = result.content || {};
+    const brand = siteContent["site-brand"] ? new DOMParser().parseFromString(siteContent["site-brand"], "text/html").body.textContent.trim() : "Margins";
+    document.querySelector(".admin-top .wordmark").textContent = brand;
     loadSiteSection();
   }
 
   function loadSiteSection() {
     const key = document.getElementById("site-content-page").value;
+    const settings = siteSettingGroups[key];
+    const fields = document.getElementById("site-settings-fields");
+    const rich = document.getElementById("site-rich-fields");
+    fields.replaceChildren();
+    if (settings) {
+      rich.hidden = true;
+      fields.hidden = false;
+      for (const [settingKey, labelText, fallback] of settings) {
+        const label = document.createElement("label");
+        label.textContent = labelText;
+        const input = document.createElement("input");
+        input.type = "text";
+        input.maxLength = 500;
+        input.dataset.settingKey = settingKey;
+        input.value = siteContent[settingKey] ? new DOMParser().parseFromString(siteContent[settingKey], "text/html").body.textContent.trim() : fallback;
+        label.append(input);
+        fields.append(label);
+      }
+      formMessage("site-content-status", "");
+      return;
+    }
+    fields.hidden = true;
+    rich.hidden = false;
     setEditorHtml("site", siteContent[key] || "<p></p>");
     formMessage("site-content-status", "");
   }
@@ -200,9 +245,18 @@
     button.disabled = true;
     formMessage("site-content-status", "Saving…");
     try {
-      const result = await request("/api/admin/site-content", { method: "PUT", body: JSON.stringify({ pageKey, contentHtml: editorHtml("site") }) });
-      siteContent[pageKey] = result.contentHtml;
-      setEditorHtml("site", result.contentHtml);
+      if (siteSettingGroups[pageKey]) {
+        for (const input of document.querySelectorAll("#site-settings-fields [data-setting-key]")) {
+          const contentHtml = "<p>" + input.value.replace(/[&<>\"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[char]) + "</p>";
+          const result = await request("/api/admin/site-content", { method: "PUT", body: JSON.stringify({ pageKey: input.dataset.settingKey, contentHtml }) });
+          siteContent[input.dataset.settingKey] = result.contentHtml;
+        }
+        if (pageKey === "brand-settings") document.querySelector(".admin-top .wordmark").textContent = new DOMParser().parseFromString(siteContent["site-brand"], "text/html").body.textContent.trim();
+      } else {
+        const result = await request("/api/admin/site-content", { method: "PUT", body: JSON.stringify({ pageKey, contentHtml: editorHtml("site") }) });
+        siteContent[pageKey] = result.contentHtml;
+        setEditorHtml("site", result.contentHtml);
+      }
       formMessage("site-content-status", "Site text saved and published.");
     } catch (error) { formMessage("site-content-status", error.message); }
     finally { button.disabled = false; }
@@ -233,14 +287,15 @@
   async function loadSubscribers() {
     const result = await request("/api/admin/subscribers");
     const root = document.getElementById("subscriber-list");
-    if (!result.subscribers.length) { root.textContent = "No confirmed subscribers yet."; return; }
+    if (!result.subscribers.length) { root.textContent = "No signups have been stored yet."; return; }
     const table = document.createElement("table");
-    table.innerHTML = "<thead><tr><th>Email</th><th>Confirmed</th></tr></thead>";
+    table.innerHTML = "<thead><tr><th>Email</th><th>Status</th><th>Date</th><th></th></tr></thead>";
     const body = document.createElement("tbody");
     for (const subscriber of result.subscribers) {
       const row = document.createElement("tr");
       const email = document.createElement("td"); email.textContent = subscriber.email;
-      const date = document.createElement("td"); date.textContent = new Date(subscriber.confirmed_at).toLocaleDateString();
+      const status = document.createElement("td"); status.textContent = subscriber.status === "confirmed" ? "Confirmed" : "Pending confirmation";
+      const date = document.createElement("td"); date.textContent = new Date(subscriber.confirmed_at || subscriber.created_at).toLocaleDateString();
       const action = document.createElement("td");
       const remove = document.createElement("button"); remove.type = "button"; remove.className = "button-quiet"; remove.textContent = "Remove";
       remove.addEventListener("click", async () => {
@@ -250,7 +305,7 @@
           await loadSubscribers();
         } catch (error) { window.alert(error.message); }
       });
-      action.append(remove); row.append(email, date, action); body.append(row);
+      action.append(remove); row.append(email, status, date, action); body.append(row);
     }
     table.append(body); root.replaceChildren(table);
   }
