@@ -5,12 +5,13 @@ function csvCell(value) { return `"${String(value ?? "").replace(/"/g, '""')}"`;
 export async function onRequestGet({ request, env }) {
   if (!(await hasAdmin(request, env))) return fail("Sign in to manage subscribers.", 401);
   if (!env.DB) return fail("The content database is not configured yet.", 503);
-  const { results = [] } = await env.DB.prepare("SELECT email, consent_at, confirmed_at FROM newsletter_subscribers WHERE active = 1 AND confirmed_at IS NOT NULL ORDER BY confirmed_at DESC").all();
+  const { results = [] } = await env.DB.prepare("SELECT email, consent_at, confirmed_at, active, created_at FROM newsletter_subscribers WHERE (active = 1 AND confirmed_at IS NOT NULL) OR (active = 0 AND confirmed_at IS NULL) ORDER BY CASE WHEN confirmed_at IS NULL THEN 0 ELSE 1 END, confirmed_at DESC, created_at DESC").all();
   if (new URL(request.url).searchParams.get("format") === "csv") {
-    const rows = [["email", "consent_at", "confirmed_at"], ...results.map((item) => [item.email, item.consent_at, item.confirmed_at])];
+    const confirmed = results.filter((item) => item.active && item.confirmed_at);
+    const rows = [["email", "consent_at", "confirmed_at"], ...confirmed.map((item) => [item.email, item.consent_at, item.confirmed_at])];
     return new Response(rows.map((row) => row.map(csvCell).join(",")).join("\r\n"), { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": "attachment; filename=margins-subscribers.csv", "Cache-Control": "no-store" } });
   }
-  return json({ subscribers: results });
+  return json({ subscribers: results.map((item) => ({ ...item, status: item.active && item.confirmed_at ? "confirmed" : "pending" })) });
 }
 
 export async function onRequestDelete({ request, env }) {

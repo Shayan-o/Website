@@ -1,6 +1,6 @@
 import { fail, hasAdmin, json, readJson, sanitizeRichHtml, validOrigin } from "../../../shared/worker.js";
 
-const allowedPages = new Set(["home-intro", "home-newsletter", "footer-note", "privacy"]);
+const allowedPages = new Set(["home-intro", "home-newsletter", "footer-note", "privacy", "site-brand", "newsletter-email-label", "newsletter-placeholder", "newsletter-consent", "newsletter-button", "newsletter-note", "newsletter-sending", "newsletter-success", "newsletter-pending", "newsletter-existing", "newsletter-error", "footer-home-label", "footer-tags-label", "footer-privacy-label"]);
 
 export async function onRequestGet({ request, env }) {
   if (!(await hasAdmin(request, env))) return fail("Sign in to manage site content.", 401);
