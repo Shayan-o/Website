@@ -9,7 +9,7 @@
   const sourceMode = { essay: false, endnotes: false, sources: false, site: false };
   const siteSettingGroups = {
     "brand-settings": [["site-brand", "Site name and wordmark", "Margins"]],
-    "newsletter-settings": [
+    "newsletter-section": [
       ["newsletter-email-label", "Email field label", "Email address"],
       ["newsletter-placeholder", "Email placeholder", "you@email.com"],
       ["newsletter-consent", "Consent checkbox text", "I agree to receive new essays by email. I can unsubscribe at any time."],
@@ -19,7 +19,17 @@
       ["newsletter-success", "Confirmation sent message", "Check your email for a confirmation link. Your signup is pending until you confirm."],
       ["newsletter-pending", "Confirmation unavailable message", "Your address was saved as pending. Email confirmation is not configured yet, so you are not subscribed until you confirm."],
       ["newsletter-existing", "Already subscribed message", "This address is already subscribed."],
-      ["newsletter-error", "Generic error message", "Signup is not available right now. Please try again later."]
+      ["newsletter-error", "Generic error message", "Signup is not available right now. Please try again later."],
+      ["newsletter-section-background", "Section background", "#f8f7f3"],
+      ["newsletter-section-text", "Section text", "#24211e"],
+      ["newsletter-divider", "Section divider", "#dfddd7"],
+      ["newsletter-input-background", "Email field background", "#f8f7f3"],
+      ["newsletter-input-text", "Email field text", "#24211e"],
+      ["newsletter-input-border", "Email field border", "#dfddd7"],
+      ["newsletter-button-background", "Button background", "#24211e"],
+      ["newsletter-button-text", "Button text", "#f8f7f3"],
+      ["newsletter-input-radius", "Email field corner radius (px)", "0"],
+      ["newsletter-button-radius", "Button corner radius (px)", "0"]
     ],
     "footer-settings": [
       ["footer-home-label", "Home link", "Home"],
@@ -167,14 +177,17 @@
     const rich = document.getElementById("site-rich-fields");
     fields.replaceChildren();
     if (settings) {
-      rich.hidden = true;
+      const combinedNewsletter = key === "newsletter-section";
+      rich.hidden = !combinedNewsletter;
       fields.hidden = false;
+      if (combinedNewsletter) setEditorHtml("site", siteContent["home-newsletter"] || "<h2 class=\"eyebrow\" id=\"newsletter-heading\">NEWSLETTER</h2><p>Get new essays by email. Low volume, no noise.</p>");
       for (const [settingKey, labelText, fallback] of settings) {
         const label = document.createElement("label");
         label.textContent = labelText;
         const input = document.createElement("input");
-        input.type = "text";
-        input.maxLength = 500;
+        input.type = settingKey.endsWith("-radius") ? "number" : settingKey.startsWith("newsletter-") && /-(background|text|divider|border)$/.test(settingKey) ? "color" : "text";
+        if (input.type === "number") { input.min = "0"; input.max = "24"; input.step = "1"; }
+        if (input.type === "text") input.maxLength = 500;
         input.dataset.settingKey = settingKey;
         input.value = siteContent[settingKey] ? new DOMParser().parseFromString(siteContent[settingKey], "text/html").body.textContent.trim() : fallback;
         label.append(input);
@@ -250,6 +263,11 @@
           const contentHtml = "<p>" + input.value.replace(/[&<>\"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[char]) + "</p>";
           const result = await request("/api/admin/site-content", { method: "PUT", body: JSON.stringify({ pageKey: input.dataset.settingKey, contentHtml }) });
           siteContent[input.dataset.settingKey] = result.contentHtml;
+        }
+        if (pageKey === "newsletter-section") {
+          const result = await request("/api/admin/site-content", { method: "PUT", body: JSON.stringify({ pageKey: "home-newsletter", contentHtml: editorHtml("site") }) });
+          siteContent["home-newsletter"] = result.contentHtml;
+          setEditorHtml("site", result.contentHtml);
         }
         if (pageKey === "brand-settings") document.querySelector(".admin-top .wordmark").textContent = new DOMParser().parseFromString(siteContent["site-brand"], "text/html").body.textContent.trim();
       } else {

@@ -109,15 +109,43 @@
     document.querySelectorAll(".back-link").forEach((element) => { element.textContent = "← " + brand; });
     const form = document.getElementById("newsletter-form");
     if (form) {
+      const newsletter = form.closest(".newsletter");
+      const color = (key, fallback) => {
+        const value = settingText(key, "");
+        return /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(value) ? value : fallback;
+      };
+      const radius = (key) => {
+        const value = Number(settingText(key, "0"));
+        return Number.isFinite(value) ? Math.max(0, Math.min(24, value)) + "px" : "0px";
+      };
+      if (newsletter) {
+        newsletter.style.backgroundColor = color("newsletter-section-background", "#f8f7f3");
+        newsletter.style.color = color("newsletter-section-text", "#24211e");
+        newsletter.style.borderColor = color("newsletter-divider", "#dfddd7");
+        newsletter.querySelectorAll(".editable-site-copy, .editable-site-copy h2, .editable-site-copy p, .consent, .form-note").forEach((element) => {
+          element.style.color = color("newsletter-section-text", "#24211e");
+        });
+      }
       const email = document.getElementById("newsletter-email");
       const emailLabel = form.querySelector('label[for="newsletter-email"]');
       const consent = document.getElementById("newsletter-consent");
       const consentLabel = consent?.closest("label");
-      if (email) email.placeholder = settingText("newsletter-placeholder", "you@email.com");
+      if (email) {
+        email.placeholder = settingText("newsletter-placeholder", "you@email.com");
+        email.style.backgroundColor = color("newsletter-input-background", "#f8f7f3");
+        email.style.color = color("newsletter-input-text", "#24211e");
+        email.style.borderColor = color("newsletter-input-border", "#dfddd7");
+        email.style.borderRadius = radius("newsletter-input-radius");
+      }
       if (emailLabel) emailLabel.textContent = settingText("newsletter-email-label", "Email address");
       if (consentLabel && consent) consentLabel.lastChild.textContent = " " + settingText("newsletter-consent", "I agree to receive new essays by email. I can unsubscribe at any time.");
       const button = form.querySelector('button[type="submit"]');
-      if (button) button.textContent = settingText("newsletter-button", "Subscribe");
+      if (button) {
+        button.textContent = settingText("newsletter-button", "Subscribe");
+        button.style.backgroundColor = color("newsletter-button-background", "#24211e");
+        button.style.color = color("newsletter-button-text", "#f8f7f3");
+        button.style.borderRadius = radius("newsletter-button-radius");
+      }
       const note = form.querySelector(".form-note");
       if (note) note.textContent = settingText("newsletter-note", "Your email is stored in the site database. Confirm your subscription before receiving essays.");
     }
