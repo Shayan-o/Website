@@ -15,7 +15,7 @@ export async function onRequestPost({ request, env }) {
   if (!subscribers.length) return json({ sent: 0, message: "There are no confirmed subscribers yet." });
 
   const campaignId = crypto.randomUUID();
-  const subject = `New essay from Margins: ${essay.title}`;
+  const subject = `New essay from Essays by Shayan: ${essay.title}`;
   await env.DB.prepare("INSERT INTO newsletter_campaigns (id, essay_slug, subject, status, recipient_count) VALUES (?, ?, ?, 'sending', 0)").bind(campaignId, slug, subject).run();
   const origin = new URL(request.url).origin;
   const emailItems = [];
@@ -29,7 +29,7 @@ export async function onRequestPost({ request, env }) {
       from: env.MAIL_FROM,
       to: [subscriber.email],
       subject,
-      html: `<div style="font-family:Georgia,serif;max-width:560px;margin:40px auto;color:#24211e;line-height:1.7"><p style="font:12px Arial,sans-serif;letter-spacing:.14em;color:#77736d">MARGINS</p><h1 style="font-weight:400">${escapeHtml(essay.title)}</h1><p>${escapeHtml(essay.excerpt)}</p><p><a href="${origin}/essays/${encodeURIComponent(slug)}" style="color:#24211e">Read the essay →</a></p><hr style="border:0;border-top:1px solid #dfddd7;margin:32px 0"><p style="font:12px Arial,sans-serif;color:#77736d">You receive this because you subscribed to Margins. <a href="${unsubscribeUrl}" style="color:#77736d">Unsubscribe</a>.</p></div>`
+      html: `<div style="font-family:Georgia,serif;max-width:560px;margin:40px auto;color:#24211e;line-height:1.7"><p style="font:12px Arial,sans-serif;letter-spacing:.14em;color:#77736d">ESSAYS BY SHAYAN</p><h1 style="font-weight:400">${escapeHtml(essay.title)}</h1><p>${escapeHtml(essay.excerpt)}</p><p><a href="${origin}/essays/${encodeURIComponent(slug)}" style="color:#24211e">Read the essay →</a></p><hr style="border:0;border-top:1px solid #dfddd7;margin:32px 0"><p style="font:12px Arial,sans-serif;color:#77736d">You receive this because you subscribed to Essays by Shayan. <a href="${unsubscribeUrl}" style="color:#77736d">Unsubscribe</a>.</p></div>`
     });
   }
   for (let start = 0; start < tokenStatements.length; start += 100) {

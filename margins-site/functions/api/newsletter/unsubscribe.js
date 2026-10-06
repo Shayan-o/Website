@@ -17,8 +17,8 @@ export async function onRequestPost({ request, env }) {
   const url = `${new URL(request.url).origin}/unsubscribe.html?token=${encodeURIComponent(token)}`;
   const sent = await sendEmail(env, {
     to: email,
-    subject: "Confirm your Margins unsubscribe request",
-    html: `<p>Confirm that you want to stop receiving new essays from Margins.</p><p><a href="${url}">Unsubscribe</a></p><p>This link expires in 24 hours. If you did not request this, you can ignore the message.</p>`
+    subject: "Confirm your Essays by Shayan unsubscribe request",
+    html: `<p>Confirm that you want to stop receiving new essays from Essays by Shayan.</p><p><a href="${url}">Unsubscribe</a></p><p>This link expires in 24 hours. If you did not request this, you can ignore the message.</p>`
   });
   if (!sent) return fail("Email service is not configured yet. Please contact the site owner to unsubscribe.", 503);
   await env.DB.prepare("DELETE FROM newsletter_tokens WHERE email = ? AND purpose = 'unsubscribe'").bind(email).run();
@@ -37,5 +37,5 @@ export async function onRequestDelete({ request, env }) {
     env.DB.prepare("UPDATE newsletter_subscribers SET active = 0 WHERE email = ?").bind(entry.email),
     env.DB.prepare("DELETE FROM newsletter_tokens WHERE token_hash = ?").bind(digest)
   ]);
-  return json({ ok: true, message: "You have been unsubscribed from Margins." });
+  return json({ ok: true, message: "You have been unsubscribed from Essays by Shayan." });
 }

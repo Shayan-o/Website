@@ -10,12 +10,17 @@
   const essayUrl = (essay) => `/essays/${encodeURIComponent(essay.slug)}`;
   const tagUrl = (tag) => `/tags/${encodeURIComponent(tag.toLowerCase())}`;
   const defaultIntro = "<h1>Essays, written slowly.</h1><p>Short pieces on writing, the quiet decisions inside the tools we use, and paying attention on purpose. New writing a few times a year.</p>";
+  const defaultBrand = "Essays by Shayan";
   const defaultNewsletter = '<h2 class="eyebrow" id="newsletter-heading">NEWSLETTER</h2><p>Get new essays by email. Low volume, no noise.</p>';
   const defaultFooterNote = "<p>No tracking, no reader accounts. Essays are stored in the site database; newsletter email is handled by the configured delivery provider.</p>";
   const settingText = (key, fallback) => {
     if (!siteContent[key]) return fallback;
     const doc = new DOMParser().parseFromString(siteContent[key], "text/html");
     return doc.body.textContent.trim() || fallback;
+  };
+  const brandName = () => {
+    const saved = settingText("site-brand", defaultBrand);
+    return saved.toLowerCase() === "margins" ? defaultBrand : saved;
   };
   const essayCard = (essay) => `
     <a class="essay-card" href="${essayUrl(essay)}" data-nav>
@@ -32,10 +37,10 @@
   }
 
   function home() {
-    document.title = "Margins — essays on writing, tools and attention";
+    document.title = `${brandName()} — essays on writing, tools and attention`;
     return `<main class="home-page">
       <header class="intro">
-        <a class="wordmark" href="/" data-nav>MARGINS</a>
+        <a class="wordmark" href="/" data-nav>${escapeHtml(brandName())}</a>
         <div class="editable-site-copy">${siteContent["home-intro"] || defaultIntro}</div>
       </header>
       <section class="writing" aria-labelledby="writing-heading">
@@ -58,23 +63,23 @@
   }
 
   function tagsIndex() {
-    document.title = "Tags — Margins";
-    return `<main class="listing-page"><a class="back-link" href="/" data-nav>← MARGINS</a>
+    document.title = `Tags — ${brandName()}`;
+    return `<main class="listing-page"><a class="back-link" href="/" data-nav>← ${escapeHtml(brandName())}</a>
       <h1>Tags</h1><ul class="tag-list">${allTags.map((tag) => `<li><a href="${tagUrl(tag)}" data-nav>${escapeHtml(tag)}</a></li>`).join("")}</ul>${footer()}</main>`;
   }
 
   function tagPage(tag) {
     const matches = essays.filter((essay) => essay.tags.some((item) => item.toLowerCase() === tag.toLowerCase()));
     if (!matches.length) return notFound();
-    document.title = `${escapeHtml(matches[0].tags.find((item) => item.toLowerCase() === tag.toLowerCase()))} — Margins`;
-    return `<main class="listing-page"><a class="back-link" href="/" data-nav>← MARGINS</a>
+    document.title = `${escapeHtml(matches[0].tags.find((item) => item.toLowerCase() === tag.toLowerCase()))} — ${brandName()}`;
+    return `<main class="listing-page"><a class="back-link" href="/" data-nav>← ${escapeHtml(brandName())}</a>
       <h1>${escapeHtml(matches[0].tags.find((item) => item.toLowerCase() === tag.toLowerCase()))}</h1>
       <div class="essay-list compact-list">${matches.map(essayCard).join("")}</div>${footer()}</main>`;
   }
 
   function essayPage(essay) {
-    document.title = `${essay.title} — Margins`;
-    return `<main class="essay-page"><a class="back-link" href="/" data-nav>← MARGINS</a>
+    document.title = `${essay.title} — ${brandName()}`;
+    return `<main class="essay-page"><a class="back-link" href="/" data-nav>← ${escapeHtml(brandName())}</a>
       <article><header class="essay-header"><h1>${escapeHtml(essay.title)}</h1>
         <p class="meta">${escapeHtml(essay.date)} · ${essay.minutes} min</p></header>
         <div class="essay-body">${essay.contentHtml || essay.paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`).join("")}</div>
@@ -85,8 +90,8 @@
   }
 
   function notFound() {
-    document.title = "Page not found — Margins";
-    return `<main class="listing-page"><a class="back-link" href="/" data-nav>← MARGINS</a><h1>Nothing here.</h1><a class="more-link" href="/" data-nav>Back to essays</a>${footer()}</main>`;
+    document.title = `Page not found — ${brandName()}`;
+    return `<main class="listing-page"><a class="back-link" href="/" data-nav>← ${escapeHtml(brandName())}</a><h1>Nothing here.</h1><a class="more-link" href="/" data-nav>Back to essays</a>${footer()}</main>`;
   }
 
   function render() {
@@ -99,12 +104,11 @@
       app.innerHTML = essay ? essayPage(essay) : notFound();
     } else app.innerHTML = notFound();
     applyNewsletterSettings();
-    if (document.title.includes("Margins")) document.title = document.title.replaceAll("Margins", settingText("site-brand", "Margins"));
     window.scrollTo(0, 0);
   }
 
   function applyNewsletterSettings() {
-    const brand = settingText("site-brand", "Margins");
+    const brand = brandName();
     document.querySelectorAll(".wordmark").forEach((element) => { element.textContent = brand; });
     document.querySelectorAll(".back-link").forEach((element) => { element.textContent = "← " + brand; });
     const form = document.getElementById("newsletter-form");

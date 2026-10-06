@@ -13,5 +13,5 @@ export async function onRequestPost({ request, env }) {
     env.DB.prepare("UPDATE newsletter_subscribers SET active = 1, confirmed_at = ? WHERE email = ?").bind(now, entry.email),
     env.DB.prepare("DELETE FROM newsletter_tokens WHERE token_hash = ?").bind(digest)
   ]);
-  return json({ ok: true, message: "You’re subscribed to Margins. You can close this page." });
+  return json({ ok: true, message: "You’re subscribed to Essays by Shayan. You can close this page." });
 }

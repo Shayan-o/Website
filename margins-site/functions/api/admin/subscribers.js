@@ -9,7 +9,7 @@ export async function onRequestGet({ request, env }) {
   if (new URL(request.url).searchParams.get("format") === "csv") {
     const confirmed = results.filter((item) => item.active && item.confirmed_at);
     const rows = [["email", "consent_at", "confirmed_at"], ...confirmed.map((item) => [item.email, item.consent_at, item.confirmed_at])];
-    return new Response(rows.map((row) => row.map(csvCell).join(",")).join("\r\n"), { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": "attachment; filename=margins-subscribers.csv", "Cache-Control": "no-store" } });
+    return new Response(rows.map((row) => row.map(csvCell).join(",")).join("\r\n"), { headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": "attachment; filename=essays-by-shayan-subscribers.csv", "Cache-Control": "no-store" } });
   }
   return json({ subscribers: results.map((item) => ({ ...item, status: item.active && item.confirmed_at ? "confirmed" : "pending" })) });
 }

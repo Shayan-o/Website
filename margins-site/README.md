@@ -1,6 +1,6 @@
-# Margins — Cloudflare Pages + D1
+# Essays by Shayan — Cloudflare Pages + D1
 
-This folder is a static recreation of the public Margins pages plus a Cloudflare Pages Functions backend. It includes a D1-backed essay editor, newsletter signup with double opt-in, subscriber management, unsubscribe links, and an explicit admin action to send a published essay to confirmed subscribers.
+This folder is a static recreation of the public Essays by Shayan pages plus a Cloudflare Pages Functions backend. It includes a D1-backed essay editor, newsletter signup with double opt-in, subscriber management, unsubscribe links, and an explicit admin action to send a published essay to confirmed subscribers.
 
 ## Included pages and features
 
@@ -24,7 +24,7 @@ This project uses Pages Functions. Cloudflare’s documentation says Functions m
    - Secret `ADMIN_PASSWORD`: a unique, strong password for `/admin.html`.
    - Secret `SESSION_SECRET`: a randomly generated secret used to sign eight-hour admin sessions.
    - Secret `RESEND_API_KEY`: a Resend API key with permission to send email.
-   - Variable `MAIL_FROM`: a sender such as `Margins <newsletter@your-domain.com>` whose domain is verified in Resend.
+   - Variable `MAIL_FROM`: a sender such as `Essays by Shayan <newsletter@your-domain.com>` whose domain is verified in Resend.
 5. Deploy the project. Open `https://your-domain/admin.html` and sign in with `ADMIN_PASSWORD`.
 6. Once your domain is ready, add it to the Pages project as its custom domain and verify the DNS setup in Cloudflare.
 

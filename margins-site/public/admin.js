@@ -8,7 +8,7 @@
   let siteContent = {};
   const sourceMode = { essay: false, endnotes: false, sources: false, site: false };
   const siteSettingGroups = {
-    "brand-settings": [["site-brand", "Site name and wordmark", "Margins"]],
+    "brand-settings": [["site-brand", "Site name and wordmark", "Essays by Shayan"]],
     "newsletter-section": [
       ["newsletter-email-label", "Email field label", "Email address"],
       ["newsletter-placeholder", "Email placeholder", "you@email.com"],
@@ -165,7 +165,8 @@
   async function loadSiteContent() {
     const result = await request("/api/admin/site-content");
     siteContent = result.content || {};
-    const brand = siteContent["site-brand"] ? new DOMParser().parseFromString(siteContent["site-brand"], "text/html").body.textContent.trim() : "Margins";
+    const savedBrand = siteContent["site-brand"] ? new DOMParser().parseFromString(siteContent["site-brand"], "text/html").body.textContent.trim() : "";
+    const brand = savedBrand && savedBrand.toLowerCase() !== "margins" ? savedBrand : "Essays by Shayan";
     document.querySelector(".admin-top .wordmark").textContent = brand;
     loadSiteSection();
   }
@@ -189,7 +190,8 @@
         if (input.type === "number") { input.min = "0"; input.max = "24"; input.step = "1"; }
         if (input.type === "text") input.maxLength = 500;
         input.dataset.settingKey = settingKey;
-        input.value = siteContent[settingKey] ? new DOMParser().parseFromString(siteContent[settingKey], "text/html").body.textContent.trim() : fallback;
+        const savedValue = siteContent[settingKey] ? new DOMParser().parseFromString(siteContent[settingKey], "text/html").body.textContent.trim() : "";
+        input.value = settingKey === "site-brand" && savedValue.toLowerCase() === "margins" ? "Essays by Shayan" : (savedValue || fallback);
         label.append(input);
         fields.append(label);
       }

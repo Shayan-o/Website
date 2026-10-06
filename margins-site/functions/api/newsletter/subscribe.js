@@ -28,8 +28,8 @@ export async function onRequestPost({ request, env }) {
   let sent = false;
   try { sent = await sendEmail(env, {
     to: email,
-    subject: "Confirm your Margins subscription",
-    html: `<p>Confirm that you want to receive new essays from Margins.</p><p><a href="${confirmUrl}">Confirm subscription</a></p><p>This link expires in 24 hours. If you did not request this, you can ignore the message.</p>`
+    subject: "Confirm your Essays by Shayan subscription",
+    html: `<p>Confirm that you want to receive new essays from Essays by Shayan.</p><p><a href="${confirmUrl}">Confirm subscription</a></p><p>This link expires in 24 hours. If you did not request this, you can ignore the message.</p>`
   }); } catch { sent = false; }
   if (!sent) return json({ ok: true, confirmationSent: false }, 202);
   return json({ ok: true, confirmationSent: true }, 202);
