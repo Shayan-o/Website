@@ -10,6 +10,10 @@
   const essayUrl = (essay) => `/essays/${encodeURIComponent(essay.slug)}`;
   const tagUrl = (tag) => `/tags/${encodeURIComponent(tag.toLowerCase())}`;
   const defaultIntro = "<h1>Essays, written slowly.</h1><p>Short pieces on writing, the quiet decisions inside the tools we use, and paying attention on purpose. New writing a few times a year.</p>";
+  const defaultAboutTitle = "About me";
+  const defaultAboutNav = "About me";
+  const defaultEssaysNav = "Essays";
+  const defaultEssaysTitle = "Essays";
   const defaultBrand = "Essays by Shayan";
   const defaultNewsletter = '<h2 class="eyebrow" id="newsletter-heading">NEWSLETTER</h2><p>Get new essays by email. Low volume, no noise.</p>';
   const defaultFooterNote = "<p>No tracking, no reader accounts. Essays are stored in the site database; newsletter email is handled by the configured delivery provider.</p>";
@@ -39,12 +43,19 @@
   function home() {
     document.title = `${brandName()} — essays on writing, tools and attention`;
     return `<main class="home-page">
-      <header class="intro">
-        <a class="wordmark" href="/" data-nav>${escapeHtml(brandName())}</a>
-        <div class="editable-site-copy">${siteContent["home-intro"] || defaultIntro}</div>
+      <header class="home-directory">
+        <nav aria-label="Page sections">
+          <a class="wordmark" href="/" data-nav>${escapeHtml(brandName())}</a>
+          <a href="#about">${escapeHtml(settingText("home-about-nav", defaultAboutNav))}</a>
+          <a href="#essays">${escapeHtml(settingText("home-essays-nav", defaultEssaysNav))}</a>
+        </nav>
       </header>
-      <section class="writing" aria-labelledby="writing-heading">
-        <h2 class="eyebrow" id="writing-heading">WRITING</h2>
+      <section class="intro" id="about" aria-labelledby="about-heading">
+        <h2 class="eyebrow" id="about-heading">${escapeHtml(settingText("home-about-title", defaultAboutTitle))}</h2>
+        <div class="editable-site-copy">${siteContent["home-intro"] || defaultIntro}</div>
+      </section>
+      <section class="writing" id="essays" aria-labelledby="essays-heading">
+        <h2 class="eyebrow" id="essays-heading">${escapeHtml(settingText("home-essays-title", defaultEssaysTitle))}</h2>
         <div class="essay-list">${essays.map(essayCard).join("")}</div>
       </section>
       <section class="newsletter" aria-labelledby="newsletter-heading">

@@ -9,6 +9,12 @@
   const sourceMode = { essay: false, endnotes: false, sources: false, site: false };
   const siteSettingGroups = {
     "brand-settings": [["site-brand", "Site name and wordmark", "Essays by Shayan"]],
+    "home-directory": [
+      ["home-about-nav", "About section link label", "About me"],
+      ["home-essays-nav", "Essays section link label", "Essays"],
+      ["home-about-title", "About section heading", "About me"],
+      ["home-essays-title", "Essays section heading", "Essays"]
+    ],
     "newsletter-section": [
       ["newsletter-email-label", "Email field label", "Email address"],
       ["newsletter-placeholder", "Email placeholder", "you@email.com"],
