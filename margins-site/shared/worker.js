@@ -37,6 +37,7 @@ export function normalizeEssay(input) {
 
 const richTags = new Set(["p", "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "li", "blockquote", "pre", "code", "strong", "b", "em", "i", "u", "s", "del", "br", "hr", "a", "sup", "sub", "table", "thead", "tbody", "tr", "th", "td", "div", "span", "img"]);
 const dropTags = "script,style,iframe,object,embed,svg,math,form,input,button,select,textarea,link,meta,base,video,audio,source";
+const safeMediaPath = (value) => /^\/media\/[0-9a-f-]{36}\.(?:jpe?g|png|gif|webp|avif|glb|stl|pdf)$/i.test(value);
 
 function safeRichStyle(value) {
   const allowed = [];
@@ -70,8 +71,8 @@ export async function sanitizeRichHtml(input, maxLength = 300000) {
       if (tag === "img") {
         const src = element.getAttribute("src") || "";
         let imageUrl;
-        try { imageUrl = new URL(src); } catch {}
-        if (!imageUrl || imageUrl.protocol !== "https:" || !/(?:^|\.)googleusercontent\.com$/i.test(imageUrl.hostname)) {
+        try { imageUrl = new URL(src, "https://shayanolumi.com"); } catch {}
+        if (!safeMediaPath(src) && (!imageUrl || imageUrl.protocol !== "https:" || !/(?:^|\.)googleusercontent\.com$/i.test(imageUrl.hostname))) {
           element.remove();
           return;
         }
@@ -79,7 +80,7 @@ export async function sanitizeRichHtml(input, maxLength = 300000) {
       for (const [name, value] of [...element.attributes]) {
         const attr = name.toLowerCase();
         if (attr === "href" && tag === "a") {
-          if (!/^(?:https?:\/\/|mailto:|tel:|#[a-z0-9_.:-]{1,120})$/i.test(value)) element.removeAttribute(name);
+          if (!safeMediaPath(value) && !/^(?:https?:\/\/|mailto:|tel:|#[a-z0-9_.:-]{1,120})$/i.test(value)) element.removeAttribute(name);
           else if (/^https?:\/\//i.test(value)) element.setAttribute("rel", "noopener noreferrer");
           continue;
         }

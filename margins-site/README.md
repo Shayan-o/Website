@@ -7,6 +7,7 @@ This folder is a static recreation of the public Essays by Shayan pages plus a C
 - Home, three captured essays, tags index, and Design, Tools, and Writing tag pages.
 - Privacy page describing Cloudflare D1 storage and Resend email delivery; replace the contact placeholder before launch.
 - `/admin.html`: password-protected visual essay editor with an HTML source view, Google Docs link import, editable homepage/privacy copy, and confirmed-subscriber management.
+- Authenticated media uploads in the essay, endnote, source, and site-text editors. JPG, PNG, GIF, WebP, AVIF, GLB, STL, and PDF files up to 20 MB are stored in Cloudflare R2. Images are inserted inline; models and PDFs are inserted as download links. Uploaded files are public when linked from the site.
 - Essays have separate rich-text Endnotes and Sources sections; imported headings named Notes/Endnotes and Sources/References/Bibliography/Works Cited are moved into those sections.
 - In-document links and named anchors are preserved for Google Docs exports, including links between essay references and endnotes.
 - Public essays load from D1 after the database is configured. The captured essays are seeded by the first migration.
@@ -27,6 +28,14 @@ This project uses Pages Functions. Cloudflare’s documentation says Functions m
    - Variable `MAIL_FROM`: a sender such as `Essays by Shayan <newsletter@your-domain.com>` whose domain is verified in Resend.
 5. Deploy the project. Open `https://your-domain/admin.html` and sign in with `ADMIN_PASSWORD`.
 6. Once your domain is ready, add it to the Pages project as its custom domain and verify the DNS setup in Cloudflare.
+
+### Enable file uploads
+
+1. In Cloudflare, open **R2 Object Storage** and create a bucket named `essays-by-shayan-media` (or choose another name).
+2. The `MEDIA` binding is declared in `wrangler.toml` and points to this bucket. Cloudflare reports that this project manages bindings through that file.
+3. Push and deploy the updated project so the binding is available to the Functions.
+
+R2 storage and request usage may incur Cloudflare charges. Do not upload private documents: files are served publicly at unguessable URLs so they can appear in published essays.
 
 Resend receives subscriber email addresses to deliver opt-in confirmations, unsubscribe confirmations, and newsletter messages. The public privacy wording discloses this. Replace the contact placeholder in `public/privacy.html` and update the disclosure if you change providers. Do not place secrets in this repository.
 

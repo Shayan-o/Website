@@ -20,6 +20,8 @@
 .rich-toolbar { display: flex; flex-wrap: wrap; gap: 4px; padding: 7px; border-bottom: 1px solid var(--rule); background: #eeece7; }
 .rich-toolbar button { min-height: 32px; padding: 0 9px; background: transparent; color: var(--ink); border: 1px solid transparent; font-size: 12px; }
 .rich-toolbar button:hover { background: #fff; border-color: var(--rule); }
+.rich-toolbar button[data-upload] { border-color: #c8c3b9; }
+.upload-help { margin: -5px 0 2px; font-size: 12px; line-height: 1.5; }
 .rich-canvas, .rich-source { display: block; width: 100%; min-height: 280px; padding: 16px; border: 0; background: var(--paper); color: var(--ink); font: 16px/1.7 var(--serif); overflow: auto; }
 .rich-canvas:focus { outline: 2px solid #76664f; outline-offset: -2px; }
 .rich-canvas blockquote { margin: 1em 0; padding-left: 1em; border-left: 2px solid var(--rule); color: var(--muted); }

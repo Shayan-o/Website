@@ -7,6 +7,14 @@
   let currentSlug = null;
   let siteContent = {};
   const sourceMode = { essay: false, endnotes: false, sources: false, site: false };
+  const uploadSelection = {};
+  const mediaFileInput = document.createElement("input");
+  mediaFileInput.type = "file";
+  mediaFileInput.accept = "image/jpeg,image/png,image/gif,image/webp,image/avif,model/gltf-binary,model/stl,application/pdf,.glb,.stl";
+  mediaFileInput.hidden = true;
+  mediaFileInput.id = "media-file-input";
+  document.body.append(mediaFileInput);
+  const safeMediaPath = (value) => /^\/media\/[0-9a-f-]{36}\.(?:jpe?g|png|gif|webp|avif|glb|stl|pdf)$/i.test(value);
   const siteSettingGroups = {
     "brand-settings": [["site-brand", "Site name and wordmark", "Essays by Shayan"]],
     "home-directory": [
@@ -46,7 +54,8 @@
   const richTags = new Set(["P", "H1", "H2", "H3", "H4", "H5", "H6", "UL", "OL", "LI", "BLOCKQUOTE", "PRE", "CODE", "STRONG", "B", "EM", "I", "U", "S", "DEL", "BR", "HR", "A", "SUP", "SUB", "TABLE", "THEAD", "TBODY", "TR", "TH", "TD", "DIV", "SPAN", "IMG"]);
 
   const request = async (url, options = {}) => {
-    const response = await fetch(url, { ...options, headers: { ...(options.body ? { "Content-Type": "application/json" } : {}), ...options.headers } });
+    const isForm = options.body instanceof FormData;
+    const response = await fetch(url, { ...options, headers: { ...(options.body && !isForm ? { "Content-Type": "application/json" } : {}), ...options.headers } });
     const result = response.headers.get("content-type")?.includes("application/json") ? await response.json() : null;
     if (!response.ok) throw new Error(result?.error || "Request failed.");
     return result;
@@ -78,10 +87,10 @@
       for (const attr of [...element.attributes]) {
         const name = attr.name.toLowerCase();
         if (name === "href" && element.tagName === "A") {
-          if (!/^(https?:\/\/|mailto:|tel:|#[a-z0-9_.:-]{1,120})$/i.test(attr.value)) element.removeAttribute(attr.name);
+          if (!safeMediaPath(attr.value) && !/^(https?:\/\/|mailto:|tel:|#[a-z0-9_.:-]{1,120})$/i.test(attr.value)) element.removeAttribute(attr.name);
         } else if (name === "src" && element.tagName === "IMG") {
           let url; try { url = new URL(attr.value); } catch {}
-          if (!url || url.protocol !== "https:" || !/(?:^|\.)googleusercontent\.com$/.test(url.hostname)) element.removeAttribute(attr.name);
+          if (!safeMediaPath(attr.value) && (!url || url.protocol !== "https:" || !/(?:^|\.)googleusercontent\.com$/.test(url.hostname))) element.removeAttribute(attr.name);
         } else if ((name === "alt" || name === "title") && element.tagName === "IMG") {
         } else if (name === "style") {
           const style = safeStyle(attr.value); if (style) element.setAttribute("style", style); else element.removeAttribute(attr.name);
@@ -137,6 +146,68 @@
   function editorParts(kind) {
     return { visual: document.getElementById(kind + "-editor"), source: document.getElementById(kind + "-source") };
   }
+
+  document.querySelectorAll(".rich-toolbar").forEach((toolbar) => {
+    const kind = toolbar.dataset.editor.replace(/-editor$/, "");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.upload = kind;
+    button.textContent = "Upload media";
+    button.title = "Upload an image, 3D model, or PDF (up to 20 MB)";
+    toolbar.append(button);
+  });
+  const uploadHelp = document.createElement("p");
+  uploadHelp.className = "upload-help";
+  uploadHelp.textContent = "Upload JPG, PNG, GIF, WebP, AVIF, GLB, STL, or PDF files up to 20 MB. Images appear inline; 3D models and PDFs are inserted as download links.";
+  document.querySelector(".essay-form").prepend(uploadHelp);
+
+  async function uploadAndInsert(kind, file) {
+    const statusId = kind === "site" ? "site-content-status" : "essay-status";
+    const form = new FormData();
+    form.append("file", file);
+    formMessage(statusId, "Uploading " + file.name + "…");
+    try {
+      const media = await request("/api/admin/uploads", { method: "POST", body: form });
+      const editor = editorParts(kind).visual;
+      const selection = window.getSelection();
+      editor.focus();
+      const savedRange = uploadSelection[kind];
+      if (savedRange && editor.contains(savedRange.commonAncestorContainer)) {
+        selection.removeAllRanges();
+        selection.addRange(savedRange);
+      }
+      const node = media.kind === "image" ? document.createElement("img") : document.createElement("a");
+      node.setAttribute(media.kind === "image" ? "src" : "href", media.url);
+      if (media.kind === "image") {
+        node.alt = media.name.replace(/\.[^.]+$/, "");
+        node.title = media.name;
+      } else {
+        node.textContent = media.name;
+        node.title = "Download " + media.name;
+      }
+      const range = selection.rangeCount ? selection.getRangeAt(0) : null;
+      if (range && editor.contains(range.commonAncestorContainer)) {
+        range.deleteContents();
+        range.insertNode(node);
+        range.setStartAfter(node);
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+      } else editor.append(node);
+      formMessage(statusId, "Uploaded. Save the essay or site text to publish this file.");
+    } catch (error) {
+      formMessage(statusId, error.message);
+    } finally {
+      delete uploadSelection[kind];
+      mediaFileInput.value = "";
+    }
+  }
+
+  mediaFileInput.addEventListener("change", () => {
+    const file = mediaFileInput.files?.[0];
+    const kind = mediaFileInput.dataset.editor;
+    if (file && kind) uploadAndInsert(kind, file);
+  });
 
   function setEditorHtml(kind, html) {
     const parts = editorParts(kind);
@@ -235,6 +306,15 @@
       const button = event.target.closest("button");
       if (!button) return;
       const kind = toolbar.dataset.editor.replace(/-editor$/, "");
+      if (button.dataset.upload) {
+        if (sourceMode[kind]) { formMessage(kind === "site" ? "site-content-status" : "essay-status", "Switch to Visual mode to insert an upload."); return; }
+        const editor = editorParts(kind).visual;
+        const selection = window.getSelection();
+        uploadSelection[kind] = selection?.rangeCount && editor.contains(selection.getRangeAt(0).commonAncestorContainer) ? selection.getRangeAt(0).cloneRange() : null;
+        mediaFileInput.dataset.editor = kind;
+        mediaFileInput.click();
+        return;
+      }
       if (button.dataset.modeToggle) {
         const parts = editorParts(kind);
         if (!sourceMode[kind]) {
